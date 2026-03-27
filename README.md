@@ -4,6 +4,20 @@
 
 PTA 答题辅助是一个浏览器扩展，旨在帮助用户在 PTA 编程平台上更高效地完成编程题。该扩展提供了代码提交、AI 答题、结果分析等功能，大大提升了答题效率。
 
+## 快速开始
+
+### 对于普通用户
+- **直接安装**：前往 [Release 页面](https://github.com/yourusername/fuckpta/releases) 下载最新版本的扩展包，然后在浏览器扩展管理页面加载已解压的扩展。
+
+### 对于开发者
+- **使用 npm 进行包管理**：
+  1. 克隆仓库：`git clone https://github.com/yourusername/fuckpta.git`
+  2. 安装依赖：`npm install`
+  3. 构建项目：`npm run build`
+  4. 加载扩展：在浏览器扩展管理页面，加载已解压的扩展（选择 dist 目录）
+
+**提示**：如果觉得开发流程太复杂，建议直接使用 [Cursor](https://cursor.sh/) 编辑器，它集成了 AI 功能，可以更方便地编写和调试扩展代码。
+
 ## 主要功能
 
 1. **代码提交**：直接通过 fetch 请求提交代码，无需模拟用户输入
