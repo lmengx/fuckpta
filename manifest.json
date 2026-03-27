@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "PTA 答题辅助",
+  "name": "__MSG_extName__",
   "version": "1.0.0",
-  "description": "在 PTA 答题平台中直接提交代码",
+  "description": "__MSG_extDescription__",
+  "default_locale": "zh_CN",
   "permissions": ["activeTab", "storage", "tabs"],
   "host_permissions": ["*://pintia.cn/*"],
   "action": {
