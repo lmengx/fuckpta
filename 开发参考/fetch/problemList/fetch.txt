@@ -1,0 +1,21 @@
+fetch("https://pintia.cn/api/problem-sets/2033107777944653824/exam-problem-list?exam_id=2033423030172368896&problem_type=PROGRAMMING&page=0&limit=100", {
+  "headers": {
+    "accept": "application/json;charset=UTF-8",
+    "accept-language": "zh-CN",
+    "content-type": "application/json;charset=UTF-8",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Microsoft Edge\";v=\"146\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-lollipop": "34ef62bbe07675c94d08f65e3272ced1",
+    "x-marshmallow": ""
+  },
+  "referrer": "https://pintia.cn/problem-sets/2033107777944653824/exam/problems/type/7",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+});

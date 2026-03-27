@@ -1,0 +1,11 @@
+{
+  "autoPopup": true,
+  "extractDelay": 2000,
+  "language": "c",
+  "aiEnabled": false,
+  "aiApiKey": "",
+  "aiApiUrl": "https://api.openai.com/v1",
+  "aiModel": "gpt-3.5-turbo",
+  "aiSystemPrompt": "你是专业的编程题 AC 生成器。\n语言：{language}\n\n请直接输出**能 AC 的完整代码**，不要解释、不要说明、不要多余内容。\n严格遵守格式：换行、空格、缩进必须完全符合题目要求。\n\n以下是题目内容：\n{problem content}",
+  "aiErrorPrompt": "你是专业的编程题 AC 生成器。\n语言：{language}\n错误类型：{error_type}\n编译器提示：{compiler_msg}\n测试点提示提示：{data_tip}\n\n请直接输出**能 AC 的完整代码**，不要解释、不要说明、不要多余内容。\n严格遵守格式：换行、空格、缩进必须完全符合题目要求。\n题目如下：\n{problem content}\n错误源码如下：\n{res_code}"
+}

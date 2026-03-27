@@ -1,0 +1,62 @@
+{
+    "problemSetProblem": {
+        "id": "2035686362967535617",
+        "label": "",
+        "score": 10,
+        "problemConfig": {
+            "programmingProblemConfig": {
+                "timeLimit": 400,
+                "memoryLimit": 65536,
+                "codeSizeLimit": 16,
+                "cases": {
+                    "0": {
+                        "hint": "",
+                        "showHint": false,
+                        "score": 5,
+                        "isPublic": false
+                    },
+                    "1": {
+                        "hint": "",
+                        "showHint": false,
+                        "score": 5,
+                        "isPublic": false
+                    }
+                },
+                "exampleTestDatas": [],
+                "testdataDescriptionCode": "",
+                "customizeLimits": [],
+                "stackSizeLimit": 8192,
+                "tools": [],
+                "ignorePresentationError": false,
+                "pathAsStdin": "",
+                "pathAsStdout": ""
+            },
+            "solutionVisible": false,
+            "answerVisible": false
+        },
+        "deadline": "1970-01-01T00:00:00Z",
+        "title": "日期格式化",
+        "content": "世界上不同国家有不同的写日期的习惯。比如美国人习惯写成“月-日-年”，而中国人习惯写成“年-月-日”。下面请你写个程序，自动把读入的美国格式的日期改写成中国习惯的日期。\n\n### 输入格式：\n\n输入在一行中按照“mm-dd-yyyy”的格式给出月、日、年。题目保证给出的日期是1900年元旦至今合法的日期。\n\n### 输出格式：\n\n在一行中按照“yyyy-mm-dd”的格式给出年、月、日。\n\n### 输入样例：\n```in\n03-15-2017\n```\n\n### 输出样例：\n```out\n2017-03-15\n```",
+        "type": "PROGRAMMING",
+        "author": "陈越",
+        "difficulty": 0,
+        "compiler": "NO_COMPILER",
+        "problemStatus": "REVIEWED",
+        "lastSubmissionId": "0",
+        "solution": "",
+        "problemSetId": "2035686362741522432",
+        "problemId": "6291",
+        "description": "世界上不同国家有不同的写日期的习惯。比如美国人习惯写成“月-日-年”，而中国人习惯写成“年-月-日”。下面请你写个程序，自动把读入的美国格式的日期改写成中国习惯的日期。\n\n### 输入格式：\n\n输入在一行中按照“mm-dd-yyyy”的格式给出月、日、年。题目保证给出的日期是1900年元旦至今合法的日期。\n\n### 输出格式：\n\n在一行中按照“yyyy-mm-dd”的格式给出年、月、日。\n\n### 输入样例：\n```in\n03-15-2017\n```\n\n### 输出样例：\n```out\n2017-03-15\n```",
+        "problemPoolIndex": 1,
+        "indexInProblemPool": 1,
+        "authorOrganizationId": "1"
+    },
+    "organization": {
+        "id": "1",
+        "name": "浙江大学",
+        "code": "zju",
+        "type": "SCHOOL",
+        "logo": "ffecf2a6-4935-4344-b640-35360f3c1f88.png"
+    },
+    "examLabel": "7-1"
+}

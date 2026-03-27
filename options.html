@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PTA 答题辅助 - 配置</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #eee;
+      margin-bottom: 30px;
+    }
+    .tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 16px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab.active {
+      color: #4CAF50;
+      border-bottom-color: #4CAF50;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+    .setting-label {
+      font-size: 16px;
+      color: #555;
+    }
+    .setting-description {
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .text-input {
+      width: 300px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .textarea-input {
+      width: 300px;
+      height: 100px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .number-input {
+      width: 80px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 30px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .save-btn:hover {
+      background-color: #45a049;
+    }
+    .btn-secondary {
+      background-color: #2196F3;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover {
+      background-color: #1976D2;
+    }
+    .btn-danger {
+      background-color: #f44336;
+      margin-top: 10px;
+    }
+    .btn-danger:hover {
+      background-color: #d32f2f;
+    }
+    .status {
+      text-align: center;
+      margin-top: 15px;
+      color: #4CAF50;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .status.show {
+      opacity: 1;
+    }
+    .status.error {
+      color: #f44336;
+    }
+    .file-input {
+      display: none;
+    }
+    .config-section {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    .config-section h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-group .save-btn {
+      flex: 1;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PTA 答题辅助 - 配置</h1>
+    
+    <div class="tabs">
+      <button class="tab active" data-tab="general">常规设置</button>
+      <button class="tab" data-tab="ai">AI 设置</button>
+    </div>
+    
+    <div id="general" class="tab-content active">
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">自动弹出浮动窗口</div>
+          <div class="setting-description">在 PTA 答题页面自动显示代码提交浮动窗口</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoPopup">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">题目提取延迟</div>
+          <div class="setting-description">页面加载后等待多少毫秒再提取题目文本（默认 2000ms）</div>
+        </div>
+        <input type="number" id="extractDelay" class="number-input" value="2000" min="0" max="10000" step="100">
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">指定语言</div>
+          <div class="setting-description">AI 生成代码的默认语言（默认 C）</div>
+        </div>
+        <select id="language" class="text-input">
+          <option value="c">C</option>
+          <option value="c++">C++</option>
+          <option value="java">Java</option>
+          <option value="python">Python</option>
+        </select>
+      </div>
+    </div>
+    
+    <div id="ai" class="tab-content">
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">启用 AI 答题</div>
+          <div class="setting-description">自动使用 AI 生成答案</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="aiEnabled">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">API 密钥</div>
+          <div class="setting-description">OpenAI API 密钥</div>
+        </div>
+        <input type="password" id="aiApiKey" class="text-input" placeholder="sk-...">
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">API 地址</div>
+          <div class="setting-description">OpenAI API 基础 URL</div>
+        </div>
+        <input type="text" id="aiApiUrl" class="text-input" placeholder="https://api.openai.com/v1">
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">模型 ID</div>
+          <div class="setting-description">使用的 AI 模型</div>
+        </div>
+        <input type="text" id="aiModel" class="text-input" placeholder="gpt-3.5-turbo">
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">系统提示词</div>
+          <div class="setting-description">AI 的系统提示词</div>
+        </div>
+        <textarea id="aiSystemPrompt" class="textarea-input" placeholder="你是一个编程助手..."></textarea>
+      </div>
+      
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">纠错提示词</div>
+          <div class="setting-description">AI 纠错时的提示词</div>
+        </div>
+        <textarea id="aiErrorPrompt" class="textarea-input" placeholder="你是一个编程助手..."></textarea>
+      </div>
+    </div>
+    
+    <button class="save-btn" id="saveBtn">保存设置</button>
+    <div class="status" id="status">设置已保存！</div>
+    
+    <div class="config-section">
+      <h3>配置文件管理</h3>
+      <div class="btn-group">
+        <button class="save-btn btn-secondary" id="exportBtn">导出配置</button>
+        <button class="save-btn btn-secondary" id="importBtn">导入配置</button>
+        <button class="save-btn btn-danger" id="resetBtn">恢复默认</button>
+      </div>
+      <input type="file" id="fileInput" class="file-input" accept=".json">
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

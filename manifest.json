@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "PTA 答题辅助",
+  "version": "1.0.0",
+  "description": "在 PTA 答题平台中直接提交代码",
+  "permissions": ["activeTab", "storage", "tabs"],
+  "host_permissions": ["*://pintia.cn/*"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["*://pintia.cn/*"],
+      "js": ["src/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

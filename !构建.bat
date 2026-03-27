@@ -1,0 +1,2 @@
+cnpm run build 
+pause
