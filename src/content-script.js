@@ -1,3 +1,202 @@
+// 显示PrimeVue风格的确认对话框
+function showConfirmDialog(options) {
+  // 创建对话框容器
+  const dialogContainer = document.createElement('div');
+  dialogContainer.id = 'pta-confirm-dialog';
+  dialogContainer.style.position = 'fixed';
+  dialogContainer.style.top = '0';
+  dialogContainer.style.left = '0';
+  dialogContainer.style.width = '100%';
+  dialogContainer.style.height = '100%';
+  dialogContainer.style.background = 'rgba(0, 0, 0, 0.5)';
+  dialogContainer.style.display = 'flex';
+  dialogContainer.style.justifyContent = 'center';
+  dialogContainer.style.alignItems = 'center';
+  dialogContainer.style.zIndex = '999999';
+  dialogContainer.style.backdropFilter = 'blur(2px)';
+  
+  // 创建对话框内容
+  const dialogContent = document.createElement('div');
+  dialogContent.style.background = 'white';
+  dialogContent.style.borderRadius = '6px';
+  dialogContent.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
+  dialogContent.style.width = '400px';
+  dialogContent.style.maxWidth = '90%';
+  dialogContent.style.overflow = 'hidden';
+  
+  // 对话框头部
+  const dialogHeader = document.createElement('div');
+  dialogHeader.style.padding = '16px';
+  dialogHeader.style.borderBottom = '1px solid #e0e0e0';
+  dialogHeader.style.display = 'flex';
+  dialogHeader.style.justifyContent = 'space-between';
+  dialogHeader.style.alignItems = 'center';
+  
+  const headerTitle = document.createElement('div');
+  headerTitle.style.fontSize = '16px';
+  headerTitle.style.fontWeight = 'bold';
+  headerTitle.style.color = '#333';
+  headerTitle.textContent = options.header || '确认';
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.style.background = 'none';
+  closeBtn.style.border = 'none';
+  closeBtn.style.fontSize = '20px';
+  closeBtn.style.cursor = 'pointer';
+  closeBtn.style.color = '#666';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => {
+    if (options.reject) {
+      options.reject();
+    }
+    document.body.removeChild(dialogContainer);
+  });
+  
+  dialogHeader.appendChild(headerTitle);
+  dialogHeader.appendChild(closeBtn);
+  
+  // 对话框内容
+  const dialogBody = document.createElement('div');
+  dialogBody.style.padding = '20px';
+  
+  const messageDiv = document.createElement('div');
+  messageDiv.style.fontSize = '14px';
+  messageDiv.style.color = '#333';
+  messageDiv.style.lineHeight = '1.5';
+  messageDiv.textContent = options.message;
+  
+  dialogBody.appendChild(messageDiv);
+  
+  // 对话框底部
+  const dialogFooter = document.createElement('div');
+  dialogFooter.style.padding = '16px';
+  dialogFooter.style.borderTop = '1px solid #e0e0e0';
+  dialogFooter.style.display = 'flex';
+  dialogFooter.style.justifyContent = 'flex-end';
+  dialogFooter.style.gap = '10px';
+  
+  // 取消按钮
+  const cancelBtn = document.createElement('button');
+  cancelBtn.style.padding = '8px 16px';
+  cancelBtn.style.border = '1px solid #ddd';
+  cancelBtn.style.borderRadius = '4px';
+  cancelBtn.style.background = 'white';
+  cancelBtn.style.color = '#333';
+  cancelBtn.style.cursor = 'pointer';
+  cancelBtn.style.fontSize = '14px';
+  cancelBtn.textContent = '取消';
+  cancelBtn.addEventListener('click', () => {
+    if (options.reject) {
+      options.reject();
+    }
+    document.body.removeChild(dialogContainer);
+  });
+  
+  // 确认按钮
+  const confirmBtn = document.createElement('button');
+  confirmBtn.style.padding = '8px 16px';
+  confirmBtn.style.border = 'none';
+  confirmBtn.style.borderRadius = '4px';
+  confirmBtn.style.background = '#4CAF50';
+  confirmBtn.style.color = 'white';
+  confirmBtn.style.cursor = 'pointer';
+  confirmBtn.style.fontSize = '14px';
+  confirmBtn.textContent = '确认';
+  confirmBtn.addEventListener('click', async () => {
+    if (options.accept) {
+      await options.accept();
+    }
+    document.body.removeChild(dialogContainer);
+  });
+  
+  dialogFooter.appendChild(cancelBtn);
+  dialogFooter.appendChild(confirmBtn);
+  
+  // 组装对话框
+  dialogContent.appendChild(dialogHeader);
+  dialogContent.appendChild(dialogBody);
+  dialogContent.appendChild(dialogFooter);
+  dialogContainer.appendChild(dialogContent);
+  
+  // 添加到页面
+  document.body.appendChild(dialogContainer);
+  
+  // 点击背景关闭
+  dialogContainer.addEventListener('click', (e) => {
+    if (e.target === dialogContainer) {
+      if (options.reject) {
+        options.reject();
+      }
+      document.body.removeChild(dialogContainer);
+    }
+  });
+}
+
+// 显示Toast提示
+function showToast(message, severity = 'info') {
+  // 创建Toast容器
+  let toastContainer = document.getElementById('pta-toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'pta-toast-container';
+    toastContainer.style.position = 'fixed';
+    toastContainer.style.top = '20px';
+    toastContainer.style.right = '20px';
+    toastContainer.style.zIndex = '999999';
+    toastContainer.style.display = 'flex';
+    toastContainer.style.flexDirection = 'column';
+    toastContainer.style.gap = '10px';
+    document.body.appendChild(toastContainer);
+  }
+  
+  // 创建Toast元素
+  const toast = document.createElement('div');
+  toast.style.padding = '12px 16px';
+  toast.style.borderRadius = '4px';
+  toast.style.color = 'white';
+  toast.style.fontSize = '14px';
+  toast.style.fontWeight = '500';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.transition = 'all 0.3s ease';
+  toast.style.opacity = '0';
+  toast.style.transform = 'translateX(100%)';
+  
+  // 根据严重程度设置不同的背景色
+  switch (severity) {
+    case 'success':
+      toast.style.backgroundColor = '#4CAF50';
+      break;
+    case 'error':
+      toast.style.backgroundColor = '#f44336';
+      break;
+    case 'warning':
+      toast.style.backgroundColor = '#ff9800';
+      break;
+    default:
+      toast.style.backgroundColor = '#2196F3';
+  }
+  
+  toast.textContent = message;
+  toastContainer.appendChild(toast);
+  
+  // 显示动画
+  setTimeout(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(0)';
+  }, 10);
+  
+  // 3秒后自动消失
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
+
 // 默认配置
 const defaultConfig = {
   autoPopup: true,
@@ -140,7 +339,7 @@ async function fetchProblemList() {
     // 从URL中提取problemSetId
     const problemSetMatch = url.match(/\/problem-sets\/(\d+)/);
     if (!problemSetMatch) {
-      console.error('无法从URL中提取problemSetId');
+      showToast('无法从URL中提取problemSetId', 'error');
       problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">无法获取题目列表</span></div>';
       return;
     }
@@ -159,7 +358,7 @@ async function fetchProblemList() {
     });
 
     if (!examResponse.ok) {
-      console.error('获取examId失败:', examResponse.status);
+      showToast(`获取examId失败: ${examResponse.status}`, 'error');
       problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">无法获取examId</span></div>';
       return;
     }
@@ -167,7 +366,7 @@ async function fetchProblemList() {
     const examData = await examResponse.json();
     const examId = examData.exam?.id;
     if (!examId) {
-      console.error('无法获取examId');
+      showToast('无法获取examId', 'error');
       problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">无法获取examId</span></div>';
       return;
     }
@@ -188,7 +387,7 @@ async function fetchProblemList() {
     );
 
     if (!listResponse.ok) {
-      console.error('获取题目列表失败:', listResponse.status);
+      showToast(`获取题目列表失败: ${listResponse.status}`, 'error');
       problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">获取题目列表失败</span></div>';
       return;
     }
@@ -200,18 +399,18 @@ async function fetchProblemList() {
 
     // 提取题目ID和名字并输出到console，同时渲染到浮动窗口
     if (problemListData.problemSetProblems) {
-      console.log('=== 题目列表 ===');
+      //console.log('=== 题目列表 ===');
       let html = '';
       problemListData.problemSetProblems.forEach((problem, index) => {
         const label = examLabelMap[problem.id] || `${index + 1}`;
-        console.log(`题目${label}: ID=${problem.id}, 名称=${problem.title}`);
+       // console.log(`题目${label}: ID=${problem.id}, 名称=${problem.title}`);
         html += `<div class="problem-item" data-id="${problem.id}">
           <span class="problem-index">${label}</span>
           <span class="problem-title">${problem.title}</span>
           <button class="problem-action-btn">一键完成</button>
         </div>`;
       });
-      console.log(`共 ${problemListData.problemSetProblems.length} 道题目`);
+      //console.log(`共 ${problemListData.problemSetProblems.length} 道题目`);
 
       problemListContainer.innerHTML = html;
       if (statusDiv) {
@@ -229,7 +428,7 @@ async function fetchProblemList() {
           }
           const problemId = this.getAttribute('data-id');
           const problemTitle = this.querySelector('.problem-title').textContent;
-          console.log(`点击了题目: ${problemTitle}, ID: ${problemId}`);
+          //console.log(`点击了题目: ${problemTitle}, ID: ${problemId}`);
           // 跳转到题目页面
           window.open(`https://pintia.cn/problem-sets/${problemSetId}/exam/problems/type/7?problemSetProblemId=${problemId}`, '_blank');
         });
@@ -240,7 +439,7 @@ async function fetchProblemList() {
           actionBtn.addEventListener('click', async function() {
             const problemId = item.getAttribute('data-id');
             const problemTitle = item.querySelector('.problem-title').textContent;
-            console.log(`一键完成题目: ${problemTitle}, ID: ${problemId}`);
+            //console.log(`一键完成题目: ${problemTitle}, ID: ${problemId}`);
 
             // 禁用按钮，显示加载状态
             actionBtn.disabled = true;
@@ -350,9 +549,9 @@ async function fetchProblemList() {
                 throw new Error('AI 未返回有效结果');
               }
 
-              const aiCode = aiData.choices[0].message.content;
-              // 清理代码，去除可能的 markdown 代码块标记
-              let cleanCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
+              let aiCode = aiData.choices[0].message.content;
+              // 移除代码块标记
+              aiCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
 
               // 步骤4: 提交代码
               const submitUrl = `https://pintia.cn/api/exams/${examId}/exam-submissions`;
@@ -362,7 +561,7 @@ async function fetchProblemList() {
                   problemId: '0',
                   problemSetProblemId: problemId,
                   programmingSubmissionDetail: {
-                    program: cleanCode,
+                    program: aiCode,
                     compiler: 'GCC'
                   }
                 }]
@@ -389,15 +588,15 @@ async function fetchProblemList() {
               actionBtn.style.background = '#2196F3';
               actionBtn.disabled = false;
             } catch (error) {
-              console.error('一键完成失败:', error);
-              actionBtn.textContent = '失败';
-              actionBtn.style.background = '#f44336';
-              setTimeout(() => {
-                actionBtn.textContent = '一键完成';
-                actionBtn.style.background = '#4CAF50';
-                actionBtn.disabled = false;
-              }, 2000);
-            }
+                showToast(`一键完成出现错误: ${error.message}`, 'error');
+                actionBtn.textContent = '错误';
+                actionBtn.style.background = '#f44336';
+                setTimeout(() => {
+                  actionBtn.textContent = '一键完成';
+                  actionBtn.style.background = '#4CAF50';
+                  actionBtn.disabled = false;
+                }, 2000);
+              }
           });
         }
       });
@@ -407,70 +606,26 @@ async function fetchProblemList() {
       const completeAllStatus = document.getElementById('pta-complete-all-status');
       if (completeAllBtn) {
         completeAllBtn.addEventListener('click', async function() {
-          // 显示确认对话框
-          if (!confirm('确定要一键完成所有题目吗？这将自动处理当前列表中的所有题目。')) {
-            return;
-          }
+          // 显示PrimeVue风格的确认对话框
+          showConfirmDialog({
+            message: '确定要一键完成所有题目吗？这将自动处理当前列表中的所有题目。',
+            header: '确认操作',
+            icon: 'pi pi-exclamation-triangle',
+            accept: async () => {
+              // 禁用按钮，显示加载状态
+              completeAllBtn.disabled = true;
+              completeAllBtn.textContent = '处理中...';
+              completeAllStatus.style.display = 'block';
+              completeAllStatus.className = 'processing';
+              completeAllStatus.textContent = '正在处理题目...';
 
-          // 禁用按钮，显示加载状态
-          completeAllBtn.disabled = true;
-          completeAllBtn.textContent = '处理中...';
-          completeAllStatus.style.display = 'block';
-          completeAllStatus.className = 'processing';
-          completeAllStatus.textContent = '正在处理题目...';
-
-          try {
-            const problems = problemListData.problemSetProblems;
-            let successCount = 0;
-            let failureCount = 0;
-
-            // 步骤1: 获取examId
-            const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
-              headers: {
-                accept: 'application/json;charset=UTF-8',
-                'content-type': 'application/json;charset=UTF-8',
-                'x-lollipop': getLollipop(),
-                'x-marshmallow': ''
-              },
-              method: 'GET',
-              credentials: 'include'
-            });
-
-            if (!examResponse.ok) {
-              throw new Error('获取examId失败');
-            }
-
-            const examData = await examResponse.json();
-            const examId = examData.exam?.id;
-            if (!examId) {
-              throw new Error('无法获取examId');
-            }
-
-            // 步骤2: 获取配置
-            const config = await new Promise(resolve => {
-              getConfig(resolve);
-            });
-
-            if (!config.aiEnabled || !config.aiApiKey) {
-              throw new Error('AI 未启用或未配置 API 密钥');
-            }
-
-            // 分批处理所有题目，每隔半秒启动一个新任务
-            completeAllStatus.textContent = `正在处理 ${problems.length} 道题目...`;
-            
-            const results = [];
-            const processingPromises = [];
-            
-            // 处理单个题目的函数
-            const processProblem = async (problem, index) => {
-              const problemId = problem.id;
-              const problemTitle = problem.title;
-              
               try {
-                console.log(`处理题目 ${index + 1}/${problems.length}: ${problemTitle}, ID: ${problemId}`);
+                const problems = problemListData.problemSetProblems;
+                let successCount = 0;
+                let failureCount = 0;
 
-                // 步骤3: 获取题目内容
-                const problemResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
+                // 步骤1: 获取examId
+                const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
                   headers: {
                     accept: 'application/json;charset=UTF-8',
                     'content-type': 'application/json;charset=UTF-8',
@@ -481,170 +636,221 @@ async function fetchProblemList() {
                   credentials: 'include'
                 });
 
-                if (!problemResponse.ok) {
-                  throw new Error('获取题目内容失败');
+                if (!examResponse.ok) {
+                  throw new Error('获取examId失败');
                 }
 
-                const problemData = await problemResponse.json();
-                let problemContent = '';
-                if (problemData && problemData.problemSetProblem) {
-                  problemContent = problemData.problemSetProblem.content || problemData.problemSetProblem.description || '';
+                const examData = await examResponse.json();
+                const examId = examData.exam?.id;
+                if (!examId) {
+                  throw new Error('无法获取examId');
                 }
 
-                if (!problemContent) {
-                  throw new Error('未提取到题目内容');
-                }
-
-                // 步骤4: 调用AI生成代码
-                const apiKey = config.aiApiKey;
-                const apiUrl = config.aiApiUrl;
-                const model = config.aiModel;
-                let systemPrompt = config.aiSystemPrompt;
-                const language = config.language;
-
-                // 替换占位符
-                systemPrompt = systemPrompt
-                  .replace('{language}', language)
-                  .replace('{problem content}', problemContent);
-
-                // 构建消息
-                let messages = [
-                  {
-                    role: 'system',
-                    content: systemPrompt
-                  },
-                  {
-                    role: 'user',
-                    content: ''
-                  }
-                ];
-
-                const aiResponse = await fetch(`${apiUrl}/chat/completions`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                  },
-                  body: JSON.stringify({
-                    model: model,
-                    messages: messages,
-                    temperature: 0.7
-                  })
+                // 步骤2: 获取配置
+                const config = await new Promise(resolve => {
+                  getConfig(resolve);
                 });
 
-                if (!aiResponse.ok) {
-                  const errorData = await aiResponse.json();
-                  throw new Error('AI 调用失败: ' + (errorData.message || '未知错误'));
+                if (!config.aiEnabled || !config.aiApiKey) {
+                  throw new Error('AI 未启用或未配置 API 密钥');
                 }
 
-                const aiData = await aiResponse.json();
-                if (!aiData.choices || aiData.choices.length === 0) {
-                  throw new Error('AI 未返回有效结果');
-                }
+                // 分批处理所有题目，每隔半秒启动一个新任务
+                completeAllStatus.textContent = `正在处理 ${problems.length} 道题目...`;
+                
+                const results = [];
+                const processingPromises = [];
+                
+                // 处理单个题目的函数
+                const processProblem = async (problem, index) => {
+                  const problemId = problem.id;
+                  const problemTitle = problem.title;
+                  
+                  try {
+                    //console.log(`处理题目 ${index + 1}/${problems.length}: ${problemTitle}, ID: ${problemId}`);
 
-                const aiCode = aiData.choices[0].message.content;
-                // 清理代码，去除可能的 markdown 代码块标记
-                let cleanCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
+                    // 步骤3: 获取题目内容
+                    const problemResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
+                      headers: {
+                        accept: 'application/json;charset=UTF-8',
+                        'content-type': 'application/json;charset=UTF-8',
+                        'x-lollipop': getLollipop(),
+                        'x-marshmallow': ''
+                      },
+                      method: 'GET',
+                      credentials: 'include'
+                    });
 
-                // 步骤5: 提交代码
-                const submitUrl = `https://pintia.cn/api/exams/${examId}/exam-submissions`;
-                const submitBody = {
-                  problemType: 'PROGRAMMING',
-                  details: [{
-                    problemId: '0',
-                    problemSetProblemId: problemId,
-                    programmingSubmissionDetail: {
-                      program: cleanCode,
-                      compiler: 'GCC'
+                    if (!problemResponse.ok) {
+                      throw new Error('获取题目内容失败');
                     }
-                  }]
+
+                    const problemData = await problemResponse.json();
+                    let problemContent = '';
+                    if (problemData && problemData.problemSetProblem) {
+                      problemContent = problemData.problemSetProblem.content || problemData.problemSetProblem.description || '';
+                    }
+
+                    if (!problemContent) {
+                      throw new Error('未提取到题目内容');
+                    }
+
+                    // 步骤4: 调用AI生成代码
+                    const apiKey = config.aiApiKey;
+                    const apiUrl = config.aiApiUrl;
+                    const model = config.aiModel;
+                    let systemPrompt = config.aiSystemPrompt;
+                    const language = config.language;
+
+                    // 替换占位符
+                    systemPrompt = systemPrompt
+                      .replace('{language}', language)
+                      .replace('{problem content}', problemContent);
+
+                    // 构建消息
+                    let messages = [
+                      {
+                        role: 'system',
+                        content: systemPrompt
+                      },
+                      {
+                        role: 'user',
+                        content: ''
+                      }
+                    ];
+
+                    const aiResponse = await fetch(`${apiUrl}/chat/completions`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                      },
+                      body: JSON.stringify({
+                        model: model,
+                        messages: messages,
+                        temperature: 0.7
+                      })
+                    });
+
+                    if (!aiResponse.ok) {
+                      const errorData = await aiResponse.json();
+                      throw new Error('AI 调用失败: ' + (errorData.message || '未知错误'));
+                    }
+
+                    const aiData = await aiResponse.json();
+                    if (!aiData.choices || aiData.choices.length === 0) {
+                      throw new Error('AI 未返回有效结果');
+                    }
+
+                    let aiCode = aiData.choices[0].message.content;
+                    // 移除代码块标记
+                    aiCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
+
+                    // 步骤5: 提交代码
+                    const submitUrl = `https://pintia.cn/api/exams/${examId}/exam-submissions`;
+                    const submitBody = {
+                      problemType: 'PROGRAMMING',
+                      details: [{
+                        problemId: '0',
+                        problemSetProblemId: problemId,
+                        programmingSubmissionDetail: {
+                          program: aiCode,
+                          compiler: 'GCC'
+                        }
+                      }]
+                    };
+
+                    const submitResponse = await fetch(submitUrl, {
+                      headers: {
+                        'accept': 'application/json;charset=UTF-8',
+                        'content-type': 'application/json;charset=UTF-8',
+                        'x-lollipop': getLollipop(),
+                        'x-marshmallow': ''
+                      },
+                      body: JSON.stringify(submitBody),
+                      method: 'POST',
+                      credentials: 'include'
+                    });
+
+                    if (!submitResponse.ok) {
+                      const errorData = await submitResponse.json();
+                      throw new Error('提交失败: ' + (errorData.message || '未知错误'));
+                    }
+
+                    // 更新对应题目的按钮状态
+                    const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
+                    if (problemItem) {
+                      const actionBtn = problemItem.querySelector('.problem-action-btn');
+                      if (actionBtn) {
+                        actionBtn.textContent = '完成';
+                        actionBtn.style.background = '#2196F3';
+                        actionBtn.disabled = false;
+                      }
+                    }
+
+                    return true;
+                  } catch (error) {
+                    showToast(`处理题目 ${problemTitle} 失败: ${error.message}`, 'error');
+                    // 更新对应题目的按钮状态
+                    const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
+                    if (problemItem) {
+                      const actionBtn = problemItem.querySelector('.problem-action-btn');
+                      if (actionBtn) {
+                        actionBtn.textContent = '失败';
+                        actionBtn.style.background = '#f44336';
+                        setTimeout(() => {
+                          actionBtn.textContent = '一键完成';
+                          actionBtn.style.background = '#4CAF50';
+                          actionBtn.disabled = false;
+                        }, 2000);
+                      }
+                    }
+                    return false;
+                  }
                 };
 
-                const submitResponse = await fetch(submitUrl, {
-                  headers: {
-                    'accept': 'application/json;charset=UTF-8',
-                    'content-type': 'application/json;charset=UTF-8',
-                    'x-lollipop': getLollipop(),
-                    'x-marshmallow': ''
-                  },
-                  body: JSON.stringify(submitBody),
-                  method: 'POST',
-                  credentials: 'include'
-                });
+                // 每隔半秒启动一个新任务
+                for (let i = 0; i < problems.length; i++) {
+                  // 延迟启动任务
+                  const delayPromise = new Promise(resolve => {
+                    setTimeout(resolve, i * 500); // 每隔500毫秒启动一个新任务
+                  });
 
-                if (!submitResponse.ok) {
-                  const errorData = await submitResponse.json();
-                  throw new Error('提交失败: ' + (errorData.message || '未知错误'));
+                  const taskPromise = delayPromise.then(() => {
+                    return processProblem(problems[i], i);
+                  });
+
+                  processingPromises.push(taskPromise);
                 }
 
-                // 更新对应题目的按钮状态
-                const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
-                if (problemItem) {
-                  const actionBtn = problemItem.querySelector('.problem-action-btn');
-                  if (actionBtn) {
-                    actionBtn.textContent = '完成';
-                    actionBtn.style.background = '#2196F3';
-                    actionBtn.disabled = false;
-                  }
-                }
+                // 等待所有任务完成
+                const taskResults = await Promise.all(processingPromises);
+                successCount = taskResults.filter(result => result).length;
+                failureCount = taskResults.filter(result => !result).length;
 
-                return true;
+                // 完成所有题目后显示结果
+                completeAllStatus.className = 'success';
+                completeAllStatus.textContent = `处理完成！成功: ${successCount}, 失败: ${failureCount}`;
+                completeAllBtn.textContent = '完成所有题目';
+                completeAllBtn.disabled = false;
               } catch (error) {
-                console.error(`处理题目 ${problemTitle} 失败:`, error);
-                // 更新对应题目的按钮状态
-                const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
-                if (problemItem) {
-                  const actionBtn = problemItem.querySelector('.problem-action-btn');
-                  if (actionBtn) {
-                    actionBtn.textContent = '失败';
-                    actionBtn.style.background = '#f44336';
-                    setTimeout(() => {
-                      actionBtn.textContent = '一键完成';
-                      actionBtn.style.background = '#4CAF50';
-                      actionBtn.disabled = false;
-                    }, 2000);
-                  }
-                }
-                return false;
+                showToast(`一键完成所有题目失败: ${error.message}`, 'error');
+                completeAllStatus.className = 'error';
+                completeAllStatus.textContent = '处理失败: ' + error.message;
+                completeAllBtn.textContent = '一键完成所有题目';
+                completeAllBtn.disabled = false;
               }
-            };
-
-            // 每隔半秒启动一个新任务
-            for (let i = 0; i < problems.length; i++) {
-              // 延迟启动任务
-              const delayPromise = new Promise(resolve => {
-                setTimeout(resolve, i * 500); // 每隔500毫秒启动一个新任务
-              });
-
-              const taskPromise = delayPromise.then(() => {
-                return processProblem(problems[i], i);
-              });
-
-              processingPromises.push(taskPromise);
+            },
+            reject: () => {
+              // 取消操作
             }
-
-            // 等待所有任务完成
-            const taskResults = await Promise.all(processingPromises);
-            successCount = taskResults.filter(result => result).length;
-            failureCount = taskResults.filter(result => !result).length;
-
-            // 完成所有题目后显示结果
-            completeAllStatus.className = 'success';
-            completeAllStatus.textContent = `处理完成！成功: ${successCount}, 失败: ${failureCount}`;
-            completeAllBtn.textContent = '完成所有题目';
-            completeAllBtn.disabled = false;
-          } catch (error) {
-            console.error('一键完成所有题目失败:', error);
-            completeAllStatus.className = 'error';
-            completeAllStatus.textContent = '处理失败: ' + error.message;
-            completeAllBtn.textContent = '一键完成所有题目';
-            completeAllBtn.disabled = false;
-          }
+          });
+          return;
         });
       }
     }
   } catch (error) {
-    console.error('获取题目列表出错:', error);
+    showToast(`获取题目列表出错: ${error.message}`, 'error');
     problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">获取题目列表出错</span></div>';
     if (statusDiv) {
       statusDiv.textContent = '获取题目列表出错';
@@ -667,7 +873,7 @@ async function extractProblemText() {
     const problemMatch = url.match(/problemSetProblemId=(\d+)/);
     
     if (!problemSetMatch || !problemMatch) {
-      console.error('无法从URL中提取问题集ID或问题ID');
+      showToast('无法从URL中提取问题集ID或问题ID', 'error');
       return null;
     }
     
@@ -701,7 +907,7 @@ async function extractProblemText() {
     });
     
     if (!response.ok) {
-      console.error('API请求失败:', response.status, response.statusText);
+      showToast(`API请求失败: ${response.status} ${response.statusText}`, 'error');
       return null;
     }
     
@@ -729,7 +935,7 @@ async function extractProblemText() {
     
     return problemData;
   } catch (error) {
-    console.error('获取题目数据时出错:', error);
+    showToast(`获取题目数据时出错: ${error.message}`, 'error');
     return null;
   }
 }
@@ -738,7 +944,7 @@ async function extractProblemText() {
 async function checkAndUseAI(problemText, isRetry = false, errorNote = '') {
   getConfig(async function(config) {
     if (!config.aiEnabled) {
-      console.log('AI 答题未启用');
+      //console.log('AI 答题未启用');
       return;
     }
     
@@ -749,7 +955,7 @@ async function checkAndUseAI(problemText, isRetry = false, errorNote = '') {
     const language = config.language;
     
     if (!apiKey) {
-      console.log('未配置 API 密钥');
+      showToast('未配置 API 密钥', 'warning');
       return;
     }
     
@@ -766,7 +972,7 @@ async function checkAndUseAI(problemText, isRetry = false, errorNote = '') {
       }
     ];
     
-    console.log('发给 AI 的内容：', messages);
+    //console.log('发给 AI 的内容：', messages);
     
     // 如果有对话历史，添加历史记录
     if (aiConversationHistory.length > 0) {
@@ -804,14 +1010,14 @@ async function checkAndUseAI(problemText, isRetry = false, errorNote = '') {
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('AI 调用失败：', errorData);
+        showToast(`AI 调用失败：${errorData.message || '未知错误'}`, 'error');
         return;
       }
       
       const data = await response.json();
       const aiResponse = data.choices[0].message.content;
       
-      console.log('AI 返回的代码：', aiResponse);
+      //console.log('AI 返回的代码：', aiResponse);
       
       // 保存对话历史
       aiConversationHistory.push({
@@ -827,7 +1033,7 @@ async function checkAndUseAI(problemText, isRetry = false, errorNote = '') {
       fillCodeToFloatWindow(aiResponse);
       
     } catch (error) {
-      console.error('AI 调用出错：', error);
+      showToast(`AI 调用出错：${error.message}`, 'error');
     }
   });
 }
@@ -837,13 +1043,13 @@ function fillCodeToFloatWindow(code) {
   const codeInput = document.getElementById('pta-code-input');
   const codeHighlight = document.getElementById('pta-code-highlight');
   if (codeInput && codeHighlight) {
-    // 清理代码，去除可能的 markdown 代码块标记
-    let cleanCode = code.replace(/```[\w]*\n?/g, '').trim();
+    // 移除代码块标记
+    const cleanCode = code.replace(/```[\w]*\n?/g, '').trim();
     codeInput.value = cleanCode;
     codeHighlight.textContent = cleanCode;
     // 应用高亮
     Prism.highlightElement(codeHighlight);
-    console.log('已将 AI 代码填充到输入框');
+    //console.log('已将 AI 代码填充到输入框');
   }
 }
 
@@ -858,7 +1064,7 @@ import 'prismjs/components/prism-python';
 // 加载Prism.js和CSS
 function loadPrism() {
   // Prism已通过import加载，这里可以做一些初始化操作
-  console.log('Prism.js loaded');
+  //console.log('Prism.js loaded');
 }
 
 // 创建浮动窗口
@@ -1460,13 +1666,13 @@ setInterval(() => {
 
 // 监听浏览器前进/后退事件
 window.addEventListener('popstate', function() {
-  console.log('=== 检测到 popstate 事件 ===');
+  //console.log('=== 检测到 popstate 事件 ===');
   checkUrlChange();
 });
 
 // 监听哈希变化事件
 window.addEventListener('hashchange', function() {
-  console.log('=== 检测到 hashchange 事件 ===');
+  //console.log('=== 检测到 hashchange 事件 ===');
   checkUrlChange();
 });
 
@@ -1494,7 +1700,7 @@ function checkUrlChange() {
 
 // 页面加载完成后立即检测
 window.addEventListener('load', function() {
-  console.log('=== 页面加载完成 ===');
+  //console.log('=== 页面加载完成 ===');
   checkUrlChange();
 });
 
@@ -1513,7 +1719,7 @@ async function extractSubmissionResult() {
     // 从URL中提取提交ID
     const submissionMatch = url.match(/\/exam\/submissions\/(\d+)/);
     if (!submissionMatch) {
-      console.error('无法从URL中提取提交ID');
+      showToast('无法从URL中提取提交ID', 'error');
       return null;
     }
     
@@ -1546,7 +1752,7 @@ async function extractSubmissionResult() {
     });
     
     if (!response.ok) {
-      console.error('API请求失败:', response.status, response.statusText);
+      showToast(`API请求失败: ${response.status} ${response.statusText}`, 'error');
       return null;
     }
     
@@ -1561,7 +1767,7 @@ async function extractSubmissionResult() {
     
     return submissionData;
   } catch (error) {
-    console.error('获取提交结果数据时出错:', error);
+    showToast(`获取提交结果数据时出错: ${error.message}`, 'error');
     return null;
   }
 }
@@ -1957,11 +2163,11 @@ function createSubmissionResultWindow() {
 
         const data = await response.json();
         if (data.choices && data.choices.length > 0) {
-          const aiResponse = data.choices[0].message.content;
-          // 清理代码，去除可能的 markdown 代码块标记
-          let cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
-          aiCodeInput.value = cleanCode;
-          aiCodeHighlight.textContent = cleanCode;
+          let aiResponse = data.choices[0].message.content;
+          // 移除代码块标记
+          aiResponse = aiResponse.replace(/```[\w]*\n?/g, '').trim();
+          aiCodeInput.value = aiResponse;
+          aiCodeHighlight.textContent = aiResponse;
           // 应用高亮
           Prism.highlightElement(aiCodeHighlight);
           aiResultSection.style.display = 'block';

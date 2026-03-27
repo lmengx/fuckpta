@@ -11,12 +11,12 @@ function openOptions() {
 
 // 打开GitHub页面
 function openGitHub() {
-  window.open('https://github.com', '_blank');
+  window.open('https://github.com/lmengx/fuckpta', '_blank');
 }
 
 // 打开问题反馈链接
 function openFeedback() {
-  window.open('https://github.com/issues', '_blank');
+  window.open('https://github.com/lmengx/fuckpta/issues', '_blank');
 }
 
 // 切换自动弹窗
@@ -43,10 +43,13 @@ onMounted(() => {
 <template>
   <div class="container">
     <div class="header">
-      <h1>PTA</h1>
+      <h1>PTA 答题辅助</h1>
       <div class="actions">
         <button @click="openOptions" class="icon-btn" title="设置">
           <img src="/setting.svg" alt="设置" class="icon">
+        </button>
+        <button @click="openGitHub" class="icon-btn" title="GitHub">
+          <img src="/github.svg" alt="GitHub" class="icon">
         </button>
       </div>
     </div>
@@ -66,6 +69,12 @@ onMounted(() => {
         </label>
       </div>
     </div>
+
+  <footer class="footer">
+      <span class="version">v1.0</span>
+      <button @click="openFeedback" class="footer-link">问题反馈</button>
+  </footer>
+
   </div>
 </template>
 
@@ -84,27 +93,29 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 12 12px;
   border-bottom: 1px solid #eee;
 }
 
 .header h1 {
-  font-size: 14px;
+  letter-spacing: 2px;
+  line-height: 1.5;
+  font-size: 16px;
   font-weight: bold;
   margin: 0;
 }
 
 .actions {
   display: flex;
-  gap: 5px;
+  gap: 8px;
 }
 
 .icon-btn {
   background: none;
   border: none;
-  padding: 3px;
+  padding: 4px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,28 +126,29 @@ onMounted(() => {
 }
 
 .icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .body {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .setting {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px 0;
+  padding: 6px 0;
 }
 
 .setting span {
-  font-size: 12px;
+  font-size: 14px;
   color: #333;
+  font-weight: 500;
 }
 
 /* Toggle Switch */
@@ -196,5 +208,34 @@ input:checked + .toggle-slider:before {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  color: #666;
+  margin-top: auto;
+}
+
+.version {
+  font-weight: 500;
+}
+
+.footer-link {
+  background: none;
+  border: none;
+  color: #2196F3;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }
 </style>

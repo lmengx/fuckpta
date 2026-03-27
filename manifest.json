@@ -9,6 +9,9 @@
     "default_popup": "index.html"
   },
   "options_page": "options.html",
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "content_scripts": [
     {
       "matches": ["*://pintia.cn/*"],
