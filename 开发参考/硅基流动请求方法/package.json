@@ -9,18 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.101",
-    "@cherrystudio/ai-core": "^1.0.9",
     "@crxjs/vite-plugin": "^2.4.0",
-    "@devui-design/icons": "^1.4.0",
-    "@matechat/core": "^1.13.0",
     "highlight.js": "^11.11.1",
+    "openai": "^6.33.0",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "primevue": "^4.5.4",
     "prismjs": "^1.30.0",
     "vue": "^3.5.30",
-    "vue-devui": "^1.6.36",
     "vue-router": "^5.0.4"
   },
   "devDependencies": {

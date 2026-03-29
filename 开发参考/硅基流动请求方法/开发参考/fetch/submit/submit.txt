@@ -1,0 +1,21 @@
+fetch("https://pintia.cn/api/exams/2036627109426360320/exam-submissions", {
+  "headers": {
+    "accept": "application/json;charset=UTF-8",
+    "accept-language": "zh-CN",
+    "content-type": "application/json;charset=UTF-8",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Microsoft Edge\";v=\"146\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-lollipop": "34ef62bbe07675c94d08f65e3272ced1",
+    "x-marshmallow": ""
+  },
+  "referrer": "https://pintia.cn/problem-sets/2035686362741522432/exam/problems/type/7?problemSetProblemId=2035687617723416576",
+  "body": "{\"problemType\":\"PROGRAMMING\",\"details\":[{\"problemId\":\"0\",\"problemSetProblemId\":\"2035687617723416576\",\"programmingSubmissionDetail\":{\"program\":\"#include<stdio.h>\\n#include<stdbool.h>\\nint main()\\n{\\n    char aa,bb,cc,dd,ee,ff,gg,hh;\\n    scanf(\\\"%c%c%c%c %c%c%c%c\\\",&aa,&bb,&cc,&dd,&ee,&ff,&gg,&hh);\\n    int a,b,c,d,e,f,g,h;\\n\\n\\n\\n    a = aa-'0';\\n    b = bb-'0';\\n    c = cc-'0';\\n    d = dd-'0';\\n    e = ee-'0';\\n    f = ff-'0';\\n    g = gg-'0';\\n    h = hh-'0';\\n\\n    int m1 = c*10+d, m2 = g*10+h;\\n    int h1 = a*10+b, h2 = e*10+f;\\n    \\n    bool tui = false;\\n    int mans = m2-m1;\\n\\n    if(mans<0)\\n    {\\n        mans+=60;\\n        tui = true;\\n    }\\n    int hans = h2-h1;\\n    if(tui) hans-=1;\\n\\n    if(hans < 10) printf(\\\"0\\\");\\n    printf(\\\"%d:\\\",hans);\\n\\n\",\"compiler\":\"GCC\"}}]}",
+  "method": "POST",
+  "mode": "cors",
+  "credentials": "include"
+});

@@ -271,8 +271,11 @@ function getEnabledModels(apiSources) {
 function getActiveApiConfig(config) {
   // 如果存在旧的配置，优先使用旧的配置（向后兼容）
   if (config.aiApiKey) {
-    // 直接使用配置中的 URL，不添加额外后缀
+    // 确保 URL 以 /v1 结尾
     let url = config.aiApiUrl || 'https://api.openai.com/v1';
+    if (!url.endsWith('/v1')) {
+      url = url.replace(/\/$/, '') + '/v1';
+    }
     return {
       url: url,
       key: config.aiApiKey,
@@ -310,8 +313,12 @@ function getActiveApiConfig(config) {
   
   if (!selectedSource || !selectedModel) return null;
   
-  // 直接使用配置中的 URL，不添加额外后缀
+  // 确保 URL 以 /v1 结尾（OpenAI 兼容 API 标准）
   let url = selectedSource.url;
+  if (!url.endsWith('/v1')) {
+    // 移除末尾的斜杠（如果有），然后添加 /v1
+    url = url.replace(/\/$/, '') + '/v1';
+  }
   
   return {
     url: url,
@@ -322,7 +329,7 @@ function getActiveApiConfig(config) {
 
 // 存储当前题目文本、提交结果数据和 AI 对话历史
 let currentProblemText = '';
-window.currentSubmissionData = null;
+let currentSubmissionData = null;
 let aiConversationHistory = [];
 
 // 获取配置（合并默认配置和用户配置）
@@ -644,13 +651,30 @@ async function fetchProblemList() {
                 }
               ];
 
-              // 使用Cherry AI Core进行调用
-              let aiCode = await generateAIResponse(apiUrl, apiKey, model, messages);
-              
-              if (!aiCode) {
+              const aiResponse = await fetch(`${apiUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                  model: model,
+                  messages: messages,
+                  temperature: 0.7
+                })
+              });
+
+              if (!aiResponse.ok) {
+                const errorData = await aiResponse.json();
+                throw new Error('AI 调用失败: ' + (errorData.message || '未知错误'));
+              }
+
+              const aiData = await aiResponse.json();
+              if (!aiData.choices || aiData.choices.length === 0) {
                 throw new Error('AI 未返回有效结果');
               }
-              
+
+              let aiCode = aiData.choices[0].message.content;
               // 移除代码块标记
               aiCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
 
@@ -827,13 +851,30 @@ async function fetchProblemList() {
                       }
                     ];
 
-                    // 使用Cherry AI Core进行调用
-                    let aiCode = await generateAIResponse(apiUrl, apiKey, model, messages);
-                    
-                    if (!aiCode) {
+                    const aiResponse = await fetch(`${apiUrl}/chat/completions`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                      },
+                      body: JSON.stringify({
+                        model: model,
+                        messages: messages,
+                        temperature: 0.7
+                      })
+                    });
+
+                    if (!aiResponse.ok) {
+                      const errorData = await aiResponse.json();
+                      throw new Error('AI 调用失败: ' + (errorData.message || '未知错误'));
+                    }
+
+                    const aiData = await aiResponse.json();
+                    if (!aiData.choices || aiData.choices.length === 0) {
                       throw new Error('AI 未返回有效结果');
                     }
-                    
+
+                    let aiCode = aiData.choices[0].message.content;
                     // 移除代码块标记
                     aiCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
 
@@ -1008,7 +1049,7 @@ async function extractProblemText() {
 }
 
 // 检查并调用 AI 答题
-async function checkAndUseAI(problemText, isRetry = false, errorNote = '', attemptCount = 0) {
+async function checkAndUseAI(problemText, isRetry = false, errorNote = '') {
   getConfig(async function(config) {
     if (!config.aiEnabled) {
       //console.log('AI 答题未启用');
@@ -1095,39 +1136,13 @@ async function checkAndUseAI(problemText, isRetry = false, errorNote = '', attem
             content: aiResponse
           });
         },
-        async (error) => {
+        (error) => {
           showToast(`AI 调用出错：${error.message}`, 'error');
-          
-          // 尝试使用其他模型
-          if (attemptCount < 3) {
-            showToast('尝试使用其他模型...', 'info');
-            // 清空对话历史
-            aiConversationHistory = [];
-            // 延迟一秒后重试
-            setTimeout(() => {
-              checkAndUseAI(problemText, isRetry, errorNote, attemptCount + 1);
-            }, 1000);
-          } else {
-            showToast('所有模型均失败，请检查 API 配置', 'error');
-          }
         }
       );
       
     } catch (error) {
       showToast(`AI 调用出错：${error.message}`, 'error');
-      
-      // 尝试使用其他模型
-      if (attemptCount < 3) {
-        showToast('尝试使用其他模型...', 'info');
-        // 清空对话历史
-        aiConversationHistory = [];
-        // 延迟一秒后重试
-        setTimeout(() => {
-          checkAndUseAI(problemText, isRetry, errorNote, attemptCount + 1);
-        }, 1000);
-      } else {
-        showToast('所有模型均失败，请检查 API 配置', 'error');
-      }
     }
   });
 }
@@ -1139,799 +1154,8 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// 为浏览器环境添加 global 变量
-if (typeof global === 'undefined') {
-  window.global = window;
-}
-
-// ==================== AI平台适配器 ====================
-
-// 检测API提供商类型
-function detectProvider(apiUrl, model) {
-  const url = apiUrl.toLowerCase();
-  const modelLower = model.toLowerCase();
-  
-  // 国产平台检测 - 优先检测，避免被其他规则覆盖
-  if (url.includes('siliconflow') || url.includes('silicon-flow') || url.includes('api.siliconflow.cn') || modelLower.includes('siliconflow')) {
-    return 'siliconflow';
-  }
-  if (url.includes('volcano') || url.includes('ark.cn-beijing.volces.com') || url.includes('volces.com') || modelLower.includes('volcano')) {
-    return 'volcano';
-  }
-  if (url.includes('aliyun') || url.includes('bailian') || url.includes('dashscope') || modelLower.includes('bailian')) {
-    return 'aliyun';
-  }
-  
-  if (url.includes('anthropic') || url.includes('claude') || modelLower.includes('claude')) {
-    return 'anthropic';
-  }
-  if (url.includes('google') || url.includes('gemini') || modelLower.includes('gemini')) {
-    return 'google';
-  }
-  if (url.includes('azure') || url.includes('openai.azure')) {
-    return 'azure';
-  }
-  if (url.includes('deepseek') || modelLower.includes('deepseek')) {
-    return 'deepseek';
-  }
-  if (url.includes('openai') || modelLower.includes('gpt')) {
-    return 'openai';
-  }
-  
-  // 默认使用OpenAI兼容格式
-  return 'openai-compatible';
-}
-
-// OpenAI适配器
-const OpenAIAdapter = {
-  name: 'OpenAI',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] OpenAI流式调用', { apiUrl, model });
-      
-      const response = await fetch(`${apiUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) onChunk(content);
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] OpenAI非流式调用', { apiUrl, model });
-    
-    const response = await fetch(`${apiUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        stream: false
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
-};
-
-// Anthropic适配器
-const AnthropicAdapter = {
-  name: 'Anthropic',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] Anthropic流式调用', { apiUrl, model });
-      
-      // 转换消息格式
-      const systemMessage = messages.find(m => m.role === 'system')?.content || '';
-      const userMessages = messages.filter(m => m.role !== 'system');
-      
-      const response = await fetch(`${apiUrl}/v1/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: model,
-          max_tokens: 4096,
-          temperature: 0.7,
-          system: systemMessage,
-          messages: userMessages.map(m => ({
-            role: m.role === 'assistant' ? 'assistant' : 'user',
-            content: m.content
-          })),
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              if (json.type === 'content_block_delta' && json.delta?.text) {
-                onChunk(json.delta.text);
-              }
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] Anthropic非流式调用', { apiUrl, model });
-    
-    const systemMessage = messages.find(m => m.role === 'system')?.content || '';
-    const userMessages = messages.filter(m => m.role !== 'system');
-    
-    const response = await fetch(`${apiUrl}/v1/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 4096,
-        temperature: 0.7,
-        system: systemMessage,
-        messages: userMessages.map(m => ({
-          role: m.role === 'assistant' ? 'assistant' : 'user',
-          content: m.content
-        }))
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.content?.[0]?.text || '';
-  }
-};
-
-// Google Gemini适配器
-const GoogleAdapter = {
-  name: 'Google',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] Google流式调用', { apiUrl, model });
-      
-      // 转换消息格式为Gemini格式
-      const contents = messages.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }]
-      }));
-      
-      const response = await fetch(`${apiUrl}/v1beta/models/${model}:streamGenerateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: contents,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 4096
-          }
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        try {
-          // Gemini返回的是JSON行格式
-          const lines = chunk.split('\n').filter(line => line.trim());
-          for (const line of lines) {
-            const json = JSON.parse(line);
-            const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) onChunk(text);
-          }
-        } catch (e) {}
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] Google非流式调用', { apiUrl, model });
-    
-    const contents = messages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }]
-    }));
-    
-    const response = await fetch(`${apiUrl}/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4096
-        }
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  }
-};
-
-// Azure OpenAI适配器
-const AzureAdapter = {
-  name: 'Azure',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] Azure流式调用', { apiUrl, model });
-      
-      const response = await fetch(`${apiUrl}/openai/deployments/${model}/chat/completions?api-version=2024-02-01`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': apiKey
-        },
-        body: JSON.stringify({
-          messages: messages,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) onChunk(content);
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] Azure非流式调用', { apiUrl, model });
-    
-    const response = await fetch(`${apiUrl}/openai/deployments/${model}/chat/completions?api-version=2024-02-01`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': apiKey
-      },
-      body: JSON.stringify({
-        messages: messages,
-        temperature: 0.7,
-        stream: false
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
-};
-
-// DeepSeek适配器（OpenAI兼容格式）
-const DeepSeekAdapter = {
-  name: 'DeepSeek',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] DeepSeek流式调用', { apiUrl, model });
-      
-      const response = await fetch(`${apiUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) onChunk(content);
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] DeepSeek非流式调用', { apiUrl, model });
-    
-    const response = await fetch(`${apiUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        stream: false
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
-};
-
-// 硅基流动适配器
-const SiliconFlowAdapter = {
-  name: 'SiliconFlow',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] 硅基流动流式调用', { apiUrl, model });
-      
-      const response = await fetch(`${apiUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) onChunk(content);
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] 硅基流动非流式调用', { apiUrl, model });
-    
-    const response = await fetch(`${apiUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        stream: false
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
-};
-
-// 火山方舟适配器
-const VolcanoAdapter = {
-  name: 'Volcano',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] 火山方舟流式调用', { apiUrl, model });
-      
-      const response = await fetch(`${apiUrl}/api/v3/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) onChunk(content);
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] 火山方舟非流式调用', { apiUrl, model });
-    
-    const response = await fetch(`${apiUrl}/api/v3/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        stream: false
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
-};
-
-// 阿里云百炼适配器
-const AliyunAdapter = {
-  name: 'Aliyun',
-  
-  async stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-    try {
-      console.log('[PTA AI] 阿里云百炼流式调用', { apiUrl, model });
-      
-      const response = await fetch(`${apiUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.7,
-          stream: true
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: '未知错误' }));
-        throw new Error(error.message || `HTTP ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete();
-              return;
-            }
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices?.[0]?.delta?.content;
-              if (content) onChunk(content);
-            } catch (e) {}
-          }
-        }
-        buffer = lines[lines.length - 1];
-      }
-      onComplete();
-    } catch (error) {
-      onError(error);
-    }
-  },
-  
-  async generate(apiUrl, apiKey, model, messages) {
-    console.log('[PTA AI] 阿里云百炼非流式调用', { apiUrl, model });
-    
-    const response = await fetch(`${apiUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        stream: false
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '未知错误' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-  }
-};
-
-// 适配器工厂
-const AIAdapters = {
-  openai: OpenAIAdapter,
-  anthropic: AnthropicAdapter,
-  google: GoogleAdapter,
-  azure: AzureAdapter,
-  deepseek: DeepSeekAdapter,
-  siliconflow: SiliconFlowAdapter,
-  volcano: VolcanoAdapter,
-  aliyun: AliyunAdapter,
-  'openai-compatible': OpenAIAdapter
-};
-
-// 流式输出函数（使用适配器）
+// 流式输出函数
 async function streamAIResponse(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
-  const provider = detectProvider(apiUrl, model);
-  const adapter = AIAdapters[provider] || AIAdapters['openai-compatible'];
-  
-  console.log('[PTA AI] 使用适配器', { provider: adapter.name, apiUrl, model });
-  
-  await adapter.stream(apiUrl, apiKey, model, messages, onChunk, onComplete, onError);
-}
-
-// 非流式AI调用函数（使用适配器）
-async function generateAIResponse(apiUrl, apiKey, model, messages) {
-  const provider = detectProvider(apiUrl, model);
-  const adapter = AIAdapters[provider] || AIAdapters['openai-compatible'];
-  
-  console.log('[PTA AI] 使用适配器', { provider: adapter.name, apiUrl, model });
-  
-  return await adapter.generate(apiUrl, apiKey, model, messages);
-}
-
-// 简化版流式输出函数（直接调用，速度更快）
-async function simpleStreamAIResponse(apiUrl, apiKey, model, messages, onChunk, onComplete, onError) {
   try {
     const response = await fetch(`${apiUrl}/chat/completions`, {
       method: 'POST',
@@ -1988,34 +1212,6 @@ async function simpleStreamAIResponse(apiUrl, apiKey, model, messages, onChunk, 
   } catch (error) {
     onError(error);
   }
-}
-
-// 简化版非流式AI调用函数（直接调用，速度更快）
-async function simpleGenerateAIResponse(apiUrl, apiKey, model, messages) {
-  const aiResponse = await fetch(`${apiUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: messages,
-      temperature: 0.7
-    })
-  });
-
-  if (!aiResponse.ok) {
-    const errorData = await aiResponse.json();
-    throw new Error('AI 调用失败: ' + (errorData.message || '未知错误'));
-  }
-
-  const aiData = await aiResponse.json();
-  if (!aiData.choices || aiData.choices.length === 0) {
-    throw new Error('AI 未返回有效结果');
-  }
-
-  return aiData.choices[0].message.content;
 }
 
 // 将代码填充到浮动窗口
@@ -2568,22 +1764,11 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
     let localProblemSetProblemId = problemSetProblemId;
     
     if (!localProblemSetId || !localProblemSetProblemId) {
-      // 尝试从URL中提取参数
       const problemMatch = url.match(/problemSetProblemId=(\d+)/);
       localProblemSetProblemId = problemMatch ? problemMatch[1] : null;
       
       const problemSetMatch = url.match(/\/problem-sets\/(\d+)/);
       localProblemSetId = problemSetMatch ? problemSetMatch[1] : null;
-      
-      // 如果URL中没有参数，尝试从提交结果页面获取
-      if (!localProblemSetProblemId || !localProblemSetId) {
-        // 检查是否是提交结果页面
-        const submissionMatch = url.match(/\/exam\/submissions\/(\d+)/);
-        if (submissionMatch && window.currentSubmissionData) {
-          localProblemSetProblemId = window.currentSubmissionData.submission.problemSetProblemId;
-          localProblemSetId = window.currentSubmissionData.submission.problemSetId;
-        }
-      }
       
       if (!localProblemSetProblemId || !localProblemSetId) {
         return { success: false, error: '无法获取页面信息' };
@@ -2776,7 +1961,7 @@ async function extractSubmissionResult() {
     const submissionData = await response.json();
     
     // 保存提交结果数据
-    window.currentSubmissionData = submissionData;
+    currentSubmissionData = submissionData;
     
     // 在提交结果页面显示浮动窗口
     createSubmissionResultWindow();
@@ -2821,7 +2006,6 @@ function createSubmissionResultWindow() {
         </div>
         <div class="pta-buttons">
           <button id="pta-copy-btn">一键复制</button>
-          <button id="pta-submit-btn">一键提交</button>
         </div>
       </div>
       <div id="pta-status"></div>
@@ -2890,11 +2074,10 @@ function createSubmissionResultWindow() {
     }
     .pta-buttons {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       margin-top: 15px;
     }
-    #pta-get-answer-btn, #pta-copy-btn, #pta-submit-btn {
+    #pta-get-answer-btn, #pta-copy-btn {
       flex: 1;
       padding: 12px;
       border: none;
@@ -2920,13 +2103,6 @@ function createSubmissionResultWindow() {
     }
     #pta-copy-btn:hover {
       background: #1976D2;
-    }
-    #pta-submit-btn {
-      background: #ff9800;
-      color: white;
-    }
-    #pta-submit-btn:hover {
-      background: #f57c00;
     }
     #pta-ai-result {
       margin-top: 20px;
@@ -3023,7 +2199,7 @@ function createSubmissionResultWindow() {
   const statusDiv = floatWindow.querySelector('#pta-status');
 
   getAnswerBtn.addEventListener('click', async () => {
-    if (!window.currentSubmissionData) {
+    if (!currentSubmissionData) {
       statusDiv.textContent = '未找到提交结果数据';
       statusDiv.className = 'error';
       return;
@@ -3042,31 +2218,31 @@ function createSubmissionResultWindow() {
       let dataTip = '';
       
       // 提取源码
-      if (window.currentSubmissionData && window.currentSubmissionData.submission && window.currentSubmissionData.submission.submissionDetails && window.currentSubmissionData.submission.submissionDetails.length > 0) {
-        const detail = window.currentSubmissionData.submission.submissionDetails[0];
+      if (currentSubmissionData && currentSubmissionData.submission && currentSubmissionData.submission.submissionDetails && currentSubmissionData.submission.submissionDetails.length > 0) {
+        const detail = currentSubmissionData.submission.submissionDetails[0];
         if (detail.programmingSubmissionDetail && detail.programmingSubmissionDetail.program) {
           resCode = detail.programmingSubmissionDetail.program;
         }
       }
       
       // 提取错误类型
-      if (window.currentSubmissionData && window.currentSubmissionData.submission && window.currentSubmissionData.submission.status) {
-        errorType = window.currentSubmissionData.submission.status;
+      if (currentSubmissionData && currentSubmissionData.submission && currentSubmissionData.submission.status) {
+        errorType = currentSubmissionData.submission.status;
       }
       
-      // 提取错误信息
-      if (window.currentSubmissionData && window.currentSubmissionData.submission && window.currentSubmissionData.submission.judgeResponseContents && window.currentSubmissionData.submission.judgeResponseContents.length > 0) {
-        const judgeResponse = window.currentSubmissionData.submission.judgeResponseContents[0];
+      // 提取编译器提示
+      if (currentSubmissionData && currentSubmissionData.submission && currentSubmissionData.submission.judgeResponseContents && currentSubmissionData.submission.judgeResponseContents.length > 0) {
+        const judgeResponse = currentSubmissionData.submission.judgeResponseContents[0];
         if (judgeResponse.programmingJudgeResponseContent && judgeResponse.programmingJudgeResponseContent.compilationResult) {
           compilerMsg = judgeResponse.programmingJudgeResponseContent.compilationResult.log || '';
         }
       }
       
       // 提取测试点情况
-      if (window.currentSubmissionData && window.currentSubmissionData.submission) {
-        const hints = window.currentSubmissionData.submission.hints || {};
-        const testcaseResults = window.currentSubmissionData.submission.judgeResponseContents && window.currentSubmissionData.submission.judgeResponseContents.length > 0 ? 
-          window.currentSubmissionData.submission.judgeResponseContents[0].programmingJudgeResponseContent.testcaseJudgeResults || {} : {};
+      if (currentSubmissionData && currentSubmissionData.submission) {
+        const hints = currentSubmissionData.submission.hints || {};
+        const testcaseResults = currentSubmissionData.submission.judgeResponseContents && currentSubmissionData.submission.judgeResponseContents.length > 0 ? 
+          currentSubmissionData.submission.judgeResponseContents[0].programmingJudgeResponseContent.testcaseJudgeResults || {} : {};
         
         const testcaseInfo = [];
         
@@ -3086,8 +2262,8 @@ function createSubmissionResultWindow() {
       }
 
       // 获取题目信息
-      const problemSetProblemId = window.currentSubmissionData.submission.problemSetProblemId;
-      const problemSetId = window.currentSubmissionData.submission.problemSetId;
+      const problemSetProblemId = currentSubmissionData.submission.problemSetProblemId;
+      const problemSetId = currentSubmissionData.submission.problemSetId;
       
       if (!problemSetProblemId || !problemSetId) {
         statusDiv.textContent = '无法获取题目信息';
@@ -3235,37 +2411,6 @@ function createSubmissionResultWindow() {
         statusDiv.textContent = '复制失败: ' + err.message;
         statusDiv.className = 'error';
       });
-  });
-
-  // 一键提交按钮事件
-  const submitBtn = floatWindow.querySelector('#pta-submit-btn');
-  submitBtn.addEventListener('click', async () => {
-    const code = aiCodeInput.value;
-    if (!code) {
-      statusDiv.textContent = '没有可提交的代码';
-      statusDiv.className = 'error';
-      return;
-    }
-
-    statusDiv.textContent = '正在提交代码...';
-    statusDiv.className = 'info';
-
-    try {
-      // 打印当前URL以便调试
-      console.log('当前URL:', window.location.href);
-      
-      const result = await submitCode(code);
-      if (result.success) {
-        statusDiv.textContent = '代码提交成功！';
-        statusDiv.className = 'success';
-      } else {
-        statusDiv.textContent = '提交失败: ' + result.error;
-        statusDiv.className = 'error';
-      }
-    } catch (error) {
-      statusDiv.textContent = '提交出错: ' + error.message;
-      statusDiv.className = 'error';
-    }
   });
 
   // 拖拽功能

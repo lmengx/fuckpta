@@ -1,0 +1,231 @@
+{
+    "publicCases": {
+        "0": false,
+        "1": false,
+        "2": false,
+        "3": false,
+        "4": false,
+        "5": false,
+        "6": false,
+        "7": false,
+        "8": false
+    },
+    "queued": -1,
+    "submission": {
+        "id": "2037212541511921664",
+        "userId": "1998560736387239936",
+        "problemType": "PROGRAMMING",
+        "problemSetProblemId": "2035686362967535622",
+        "submitAt": "2026-03-26T16:58:14Z",
+        "status": "ACCEPTED",
+        "score": 10,
+        "compiler": "GCC",
+        "time": 0.001,
+        "memory": 593920,
+        "submissionDetails": [
+            {
+                "problemSetProblemId": "2035686362967535622",
+                "programmingSubmissionDetail": {
+                    "compiler": "GCC",
+                    "program": "#include<stdio.h>\nint main()\n{\n    int a;\n    scanf(\"%d\",&a);\n\n    if(a>999||a<100)\n    {\n        printf(\"Invalid Value.\");\n        return 0;\n    }\n\n    \n    if(a==153||a==370||a==371||a==407) printf(\"Yes\");\n    else printf(\"No\");\n    return 0;\n}"
+                },
+                "problemId": "0"
+            }
+        ],
+        "judgeResponseContents": [
+            {
+                "status": "ACCEPTED",
+                "score": 10,
+                "programmingJudgeResponseContent": {
+                    "compilationResult": {
+                        "log": "a.c: In function ‘main’:\na.c:5:5: warning: ignoring return value of ‘scanf’ declared with attribute ‘warn_unused_result’ [-Wunused-result]\n    5 |     scanf(\"%d\",&a);\n      |     ^~~~~~~~~~~~~~",
+                        "success": true,
+                        "error": ""
+                    },
+                    "checkerCompilationResult": {
+                        "log": "",
+                        "success": false,
+                        "error": ""
+                    },
+                    "testcaseJudgeResults": {
+                        "0": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 311296,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 2,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "1": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 311296,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "2": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 532480,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "3": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 536576,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "4": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 540672,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "5": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 524288,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "6": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 552960,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "7": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 536576,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "8": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 593920,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        }
+                    }
+                },
+                "problemSetProblemId": "2035686362967535622"
+            }
+        ],
+        "hints": {
+            "0": "sample1等价",
+            "1": "sample1等价",
+            "2": "sample1等价",
+            "3": "sample1等价",
+            "4": "sample2等价",
+            "5": "sample2等价",
+            "6": "sample3等价，边界数据",
+            "7": "sample3等价，边界数据",
+            "8": "sample3等价"
+        },
+        "problemSetId": "2035686362741522432",
+        "previewSubmission": false,
+        "cause": "",
+        "judgeAt": "2026-03-26T16:58:14Z"
+    },
+    "examMember": {
+        "userGroupId": "0",
+        "examId": "0",
+        "userId": "1998560736387239936",
+        "studentUserId": "1982772822144323592"
+    },
+    "user": {
+        "id": "1998560736387239936",
+        "nickname": "用户1709"
+    },
+    "studentUser": {
+        "studentNumber": "202501010112",
+        "name": "刘禹廷",
+        "id": "1982772822144323592"
+    }
+}

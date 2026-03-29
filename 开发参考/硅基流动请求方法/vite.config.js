@@ -9,8 +9,7 @@ export default defineConfig({
   plugins: [vue(), crx({ manifest })],
   define: {
     'process.env.BUILD_TIME': JSON.stringify(new Date().toLocaleString()),
-    'BUILD_TIME': JSON.stringify(new Date().toLocaleString()),
-    'import.meta.env.BUILD_TIME': JSON.stringify(new Date().toLocaleString())
+    'BUILD_TIME': JSON.stringify(new Date().toLocaleString())
   },
   build: {
     rollupOptions: {

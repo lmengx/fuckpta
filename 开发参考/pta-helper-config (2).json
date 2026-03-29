@@ -1,0 +1,116 @@
+{
+  "autoPopup": true,
+  "language": "c",
+  "aiEnabled": true,
+  "selectedApiServiceId": 1,
+  "selectedModelId": "1/Qwen/Qwen3.5-4B",
+  "aiSystemPrompt": "你是专业的编程题 AC 生成器。\n语言：{language}\n\n请直接输出**能 AC 的完整代码**，不要解释、不要说明、不要多余内容。\n严格遵守格式：换行、空格、缩进必须完全符合题目要求。\n\n以下是题目内容：\n{problem content}",
+  "aiErrorPrompt": "你是专业的编程题 AC 生成器。\n语言：{language}\n错误类型：{error_type}\n编译器提示：{compiler_msg}\n测试点提示提示：{data_tip}\n\n请直接输出**能 AC 的完整代码**，不要解释、不要说明、不要多余内容。\n严格遵守格式：换行、空格、缩进必须完全符合题目要求。\n题目如下：\n{problem content}\n错误源码如下：\n{res_code}",
+  "apiServices": {
+    "0": {
+      "apiKey": "sk-ctwvtinukszlvyptczgswwnxwsdvosulesqyflwflawxeaji",
+      "enabled": true,
+      "id": 1,
+      "models": {
+        "0": {
+          "enabled": false,
+          "id": "gpt-4-turbo",
+          "name": "GPT-4 Turbo"
+        },
+        "1": {
+          "enabled": true,
+          "id": "Qwen/Qwen3.5-4B",
+          "name": "Qwen/Qwen3.5-4B"
+        }
+      },
+      "name": "OpenAI",
+      "url": "https://api.siliconflow.cn"
+    },
+    "1": {
+      "apiKey": "",
+      "enabled": false,
+      "id": 2,
+      "models": {
+        "0": {
+          "enabled": true,
+          "id": "gpt-35-turbo",
+          "name": "GPT-3.5 Turbo"
+        },
+        "1": {
+          "enabled": false,
+          "id": "gpt-4",
+          "name": "GPT-4"
+        }
+      },
+      "name": "Azure OpenAI",
+      "url": "https://YOUR_RESOURCE_NAME.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT_NAME"
+    },
+    "2": {
+      "apiKey": "",
+      "enabled": false,
+      "id": 3,
+      "models": {
+        "0": {
+          "enabled": true,
+          "id": "claude-3-haiku-20240307",
+          "name": "Claude 3 Haiku"
+        },
+        "1": {
+          "enabled": false,
+          "id": "claude-3-sonnet-20240229",
+          "name": "Claude 3 Sonnet"
+        },
+        "2": {
+          "enabled": false,
+          "id": "claude-3-opus-20240229",
+          "name": "Claude 3 Opus"
+        }
+      },
+      "name": "Anthropic",
+      "url": "https://api.anthropic.com/v1"
+    },
+    "3": {
+      "apiKey": "",
+      "enabled": false,
+      "id": 4,
+      "models": {
+        "0": {
+          "enabled": true,
+          "id": "gemini-pro",
+          "name": "Gemini Pro"
+        },
+        "1": {
+          "enabled": false,
+          "id": "gemini-pro-vision",
+          "name": "Gemini Pro Vision"
+        }
+      },
+      "name": "Google Gemini",
+      "url": "https://generativelanguage.googleapis.com/v1"
+    },
+    "4": {
+      "apiKey": "",
+      "enabled": false,
+      "id": 5,
+      "models": {
+        "0": {
+          "enabled": true,
+          "id": "llama2",
+          "name": "Llama 2"
+        },
+        "1": {
+          "enabled": false,
+          "id": "codellama",
+          "name": "Code Llama"
+        },
+        "2": {
+          "enabled": false,
+          "id": "mistral",
+          "name": "Mistral"
+        }
+      },
+      "name": "本地 Ollama",
+      "url": "http://localhost:11434/api"
+    }
+  }
+}
