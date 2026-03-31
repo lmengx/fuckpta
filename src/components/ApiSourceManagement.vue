@@ -536,7 +536,7 @@ onMounted(() => {
         <div class="source-header-left">
           <h3 class="source-header-name">{{ selectedSource.name }}</h3>
           <button class="btn-edit-icon" @click="openEditIconModal(selectedSourceIndex)" title="设置图标">
-            <img src="/public/setting.svg" alt="设置图标" class="edit-icon-img">
+            <img src="/icon/smallPanel/setting.svg" alt="设置图标" class="edit-icon-img">
           </button>
         </div>
         <div class="source-header-right">

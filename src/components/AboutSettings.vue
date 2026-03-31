@@ -42,6 +42,19 @@ onMounted(async () => {
     ...result,
     checking: false
   };
+  
+  // 如果调试模式开启，输出版本更新匹配信息
+  chrome.storage.local.get(['debugMode', 'debugEnabled'], (config) => {
+    if (config.debugMode && config.debugEnabled) {
+      console.log('[PTA 答题辅助] 版本更新检查结果:', {
+        currentVersion: result.currentVersion,
+        latestVersion: result.latestVersion,
+        hasUpdate: result.hasUpdate,
+        source: result.source,
+        error: result.error
+      });
+    }
+  });
 });
 </script>
 

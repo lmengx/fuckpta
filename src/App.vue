@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { PLUGIN_CONFIG } from './config.js';
+import { PLUGIN_CONFIG, checkForUpdates } from './config.js';
 
 const autoPopup = ref(false);
 const aiEnabled = ref(false);
 const version = ref(PLUGIN_CONFIG.version);
+const hasUpdate = ref(false);
+const showUpdateModal = ref(false);
 let clickCount = 0;
 let clickTimer = null;
 
@@ -64,12 +66,49 @@ function onVersionClick() {
   }
 }
 
+// 打开更新选择弹窗
+function openUpdateModal() {
+  showUpdateModal.value = true;
+}
+
+// 关闭更新选择弹窗
+function closeUpdateModal() {
+  showUpdateModal.value = false;
+}
+
+// 打开GitHub更新链接
+function openGitHubUpdate() {
+  window.open(PLUGIN_CONFIG.githubRepo, '_blank');
+  closeUpdateModal();
+}
+
+// 打开Gitee更新链接
+function openGiteeUpdate() {
+  window.open(PLUGIN_CONFIG.giteeRepo, '_blank');
+  closeUpdateModal();
+}
 
 // 加载配置
-onMounted(() => {
-  chrome.storage.local.get(['autoPopup', 'aiEnabled'], (result) => {
+onMounted(async () => {
+  chrome.storage.local.get(['autoPopup', 'aiEnabled', 'debugMode', 'debugEnabled'], (result) => {
     autoPopup.value = result.autoPopup ?? true;
     aiEnabled.value = result.aiEnabled ?? false;
+    
+    // 检查更新
+    checkForUpdates().then(updateInfo => {
+      hasUpdate.value = updateInfo.hasUpdate;
+      
+      // 如果调试模式开启，输出版本更新匹配信息
+      if (result.debugMode && result.debugEnabled) {
+        console.log('[PTA 答题辅助] 版本更新检查结果:', {
+          currentVersion: updateInfo.currentVersion,
+          latestVersion: updateInfo.latestVersion,
+          hasUpdate: updateInfo.hasUpdate,
+          source: updateInfo.source,
+          error: updateInfo.error
+        });
+      }
+    });
   });
 });
 </script>
@@ -79,11 +118,14 @@ onMounted(() => {
     <div class="header">
       <h1>PTA 答题辅助</h1>
       <div class="actions">
+        <button v-if="hasUpdate" @click="openUpdateModal" class="icon-btn update-btn" title="发现新版本">
+          <img src="/icon/smallPanel/update.svg" alt="更新" class="icon">
+        </button>
         <button @click="openOptions" class="icon-btn" title="设置">
-          <img src="/setting.svg" alt="设置" class="icon">
+          <img src="/icon/smallPanel/setting.svg" alt="设置" class="icon">
         </button>
         <button @click="openGitHub" class="icon-btn" title="GitHub">
-          <img src="/github.svg" alt="GitHub" class="icon">
+          <img src="/icon/smallPanel/github.svg" alt="GitHub" class="icon">
         </button>
       </div>
     </div>
@@ -109,6 +151,31 @@ onMounted(() => {
       <span class="version" @click="onVersionClick">v{{ version }}</span>
       <button @click="openFeedback" class="footer-link">问题反馈</button>
   </footer>
+
+  <!-- 更新选择弹窗 -->
+  <div v-if="showUpdateModal" class="modal-overlay" @click="closeUpdateModal">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">选择更新源</h3>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">发现新版本，请选择下载源：</p>
+        <div class="update-options">
+          <button class="update-option-btn github" @click="openGitHubUpdate">
+            <span class="option-title">GitHub</span>
+            <span class="option-desc">国外用户推荐</span>
+          </button>
+          <button class="update-option-btn gitee" @click="openGiteeUpdate">
+            <span class="option-title">Gitee</span>
+            <span class="option-desc">国内用户推荐</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" @click="closeUpdateModal">取消</button>
+      </div>
+    </div>
+  </div>
 
   </div>
 </template>
@@ -272,6 +339,134 @@ input:checked + .toggle-slider:before {
 
 .footer-link:hover {
   text-decoration: underline;
+}
+
+/* 更新按钮动画 */
+.update-btn {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: modalAppear 0.3s ease;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.modal-body {
+  margin-bottom: 20px;
+}
+
+.modal-desc {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.update-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.update-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.update-option-btn:hover {
+  border-color: #32F08C;
+  background-color: #f6ffed;
+}
+
+.update-option-btn .option-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.update-option-btn .option-desc {
+  font-size: 12px;
+  color: #999;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-cancel {
+  padding: 8px 24px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  border-color: #32F08C;
+  color: #32F08C;
 }
 
 </style>
