@@ -1144,6 +1144,60 @@ if (typeof global === 'undefined') {
   window.global = window;
 }
 
+// 显示提交失败提示
+function showSubmissionErrorHint() {
+  // 创建提示元素
+  const hintElement = document.createElement('div');
+  hintElement.style.position = 'fixed';
+  hintElement.style.top = '20px';
+  hintElement.style.right = '20px';
+  hintElement.style.padding = '12px 16px';
+  hintElement.style.borderRadius = '8px';
+  hintElement.style.backgroundColor = '#ff4d4f';
+  hintElement.style.color = '#fff';
+  hintElement.style.fontSize = '14px';
+  hintElement.style.fontWeight = '500';
+  hintElement.style.zIndex = '999999';
+  hintElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+  hintElement.style.cursor = 'pointer';
+  hintElement.style.transition = 'all 0.3s ease';
+  hintElement.style.opacity = '0';
+  hintElement.style.transform = 'translateY(-20px)';
+  hintElement.textContent = '提交失败？点击查看使用PyCatch提交的方法';
+  
+  // 添加点击事件
+  hintElement.addEventListener('click', () => {
+    console.log('提示框被点击');
+    // 发送消息给background script，让它打开设置页面
+    chrome.runtime.sendMessage({ 
+      action: 'openOptionsWithTab', 
+      tab: 'subErr' 
+    }, (response) => {
+      console.log('消息发送结果', response);
+    });
+  });
+  
+  // 添加到页面
+  document.body.appendChild(hintElement);
+  
+  // 显示提示
+  setTimeout(() => {
+    hintElement.style.opacity = '1';
+    hintElement.style.transform = 'translateY(0)';
+  }, 100);
+  
+  // 10秒后隐藏提示
+  setTimeout(() => {
+    hintElement.style.opacity = '0';
+    hintElement.style.transform = 'translateY(-20px)';
+    setTimeout(() => {
+      if (hintElement.parentNode) {
+        document.body.removeChild(hintElement);
+      }
+    }, 300);
+  }, 10000);
+}
+
 // ==================== AI平台适配器 ====================
 
 // 检测API提供商类型
@@ -2461,6 +2515,9 @@ function initCodeEditorEvents(floatWindow) {
     } else {
       statusDiv.textContent = result.error || '提交失败';
       statusDiv.className = 'error';
+      
+      // 显示右上角提示
+      showSubmissionErrorHint();
     }
   });
 

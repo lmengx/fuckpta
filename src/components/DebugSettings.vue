@@ -78,13 +78,7 @@ function closeBuildTimeModal() {
   showBuildTimeModal.value = false;
 }
 
-function closeDebugMode() {
-  if (confirm('确定要关闭调试模式吗？')) {
-    chrome.storage.local.set({ debugMode: false }, () => {
-      location.reload();
-    });
-  }
-}
+
 
 // 页面加载完成后初始化
 loadConfig();
@@ -113,13 +107,7 @@ loadConfig();
         <button class="btn-text" @click="openBuildTimeModal">查看</button>
       </div>
       
-      <div class="setting-item">
-        <div class="setting-info">
-          <div class="setting-name">关闭调试模式</div>
-          <div class="setting-desc">关闭调试模式并隐藏调试设置</div>
-        </div>
-        <button class="btn-text danger" @click="closeDebugMode">关闭</button>
-      </div>
+
     </div>
   </div>
   

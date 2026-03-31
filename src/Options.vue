@@ -6,6 +6,7 @@ import AISettings from './components/AISettings.vue';
 import ApiSourceManagement from './components/ApiSourceManagement.vue';
 import DebugSettings from './components/DebugSettings.vue';
 import DataManagement from './components/DataManagement.vue';
+import AboutSettings from './components/AboutSettings.vue';
 
 // 当前选中的选项卡
 const activeTab = ref('general');
@@ -14,12 +15,6 @@ const activeTab = ref('general');
 const statusMessage = ref('');
 const statusType = ref('success');
 const showStatus = ref(false);
-
-// 调试模式状态
-const debugMode = ref(false);
-
-// 是否显示调试选项卡
-const showDebugTab = computed(() => debugMode.value);
 
 // 显示状态消息
 function showMessage(message, type = 'success') {
@@ -31,13 +26,6 @@ function showMessage(message, type = 'success') {
   }, 2000);
 }
 
-// 加载调试模式状态
-function loadDebugMode() {
-  chrome.storage.local.get(['debugMode'], (result) => {
-    debugMode.value = result.debugMode || false;
-  });
-}
-
 // 切换选项卡
 function switchTab(tab) {
   activeTab.value = tab;
@@ -45,7 +33,46 @@ function switchTab(tab) {
 
 // 页面加载完成后初始化
 onMounted(() => {
-  loadDebugMode();
+  // 从URL参数中获取tab参数，如果有则切换到对应页面
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
+  if (tabParam) {
+    activeTab.value = tabParam;
+    // 如果是subErr参数，打开关于页面
+    if (tabParam === 'subErr') {
+      activeTab.value = 'about';
+      // 延迟一下，确保页面已加载
+      setTimeout(() => {
+        // 触发打开PyCatch模态框的事件
+        const event = new CustomEvent('openPycatchModal');
+        window.dispatchEvent(event);
+      }, 1000);
+    }
+  } else {
+    // 检查是否是第一次加载插件
+    chrome.storage.local.get(['pluginLoaded'], (result) => {
+      if (!result.pluginLoaded) {
+        // 第一次加载，打开关于页面
+        activeTab.value = 'about';
+        // 标记插件已加载
+        chrome.storage.local.set({ pluginLoaded: true });
+      }
+    });
+  }
+  
+  // 监听来自content-script的消息
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'openPycatchModal') {
+      // 切换到关于页面
+      activeTab.value = 'about';
+      // 延迟一下，确保页面已加载
+      setTimeout(() => {
+        // 触发打开PyCatch模态框的事件
+        const event = new CustomEvent('openPycatchModal');
+        window.dispatchEvent(event);
+      }, 1000);
+    }
+  });
 });
 </script>
 
@@ -54,7 +81,6 @@ onMounted(() => {
     <!-- 左侧导航 -->
     <Sidebar 
       :active-tab="activeTab"
-      :show-debug-tab="showDebugTab"
       :status-message="statusMessage"
       :status-type="statusType"
       :show-status="showStatus"
@@ -81,7 +107,7 @@ onMounted(() => {
       </div>
       
       <!-- 调试设置 -->
-      <div v-show="activeTab === 'debug' && showDebugTab" class="panel">
+      <div v-show="activeTab === 'debug'" class="panel">
         <h2 class="panel-title">调试设置</h2>
         <DebugSettings />
       </div>
@@ -90,6 +116,12 @@ onMounted(() => {
       <div v-show="activeTab === 'data'" class="panel">
         <h2 class="panel-title">数据管理</h2>
         <DataManagement />
+      </div>
+      
+      <!-- 关于 -->
+      <div v-show="activeTab === 'about'" class="panel">
+        <h2 class="panel-title">关于</h2>
+        <AboutSettings />
       </div>
     </div>
   </div>

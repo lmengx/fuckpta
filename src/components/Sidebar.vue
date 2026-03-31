@@ -4,10 +4,6 @@ defineProps({
     type: String,
     required: true
   },
-  showDebugTab: {
-    type: Boolean,
-    default: false
-  },
   statusMessage: {
     type: String,
     default: ''
@@ -64,22 +60,30 @@ function switchTab(tab) {
       </button>
       
       <button 
-        v-if="showDebugTab"
-        class="nav-item" 
-        :class="{ active: activeTab === 'debug' }"
-        @click="switchTab('debug')"
-      >
-        <span class="nav-icon">🐛</span>
-        <span class="nav-text">调试设置</span>
-      </button>
-      
-      <button 
         class="nav-item" 
         :class="{ active: activeTab === 'data' }"
         @click="switchTab('data')"
       >
         <span class="nav-icon">💾</span>
         <span class="nav-text">数据管理</span>
+      </button>
+      
+      <button 
+        class="nav-item" 
+        :class="{ active: activeTab === 'about' }"
+        @click="switchTab('about')"
+      >
+        <span class="nav-icon">ℹ️</span>
+        <span class="nav-text">关于</span>
+      </button>
+      
+      <button 
+        class="nav-item" 
+        :class="{ active: activeTab === 'debug' }"
+        @click="switchTab('debug')"
+      >
+        <span class="nav-icon">🐛</span>
+        <span class="nav-text">调试设置</span>
       </button>
     </nav>
     

@@ -8,7 +8,9 @@ let clickTimer = null;
 
 // 打开配置页面
 function openOptions() {
-  chrome.runtime.openOptionsPage();
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('options.html')
+  });
 }
 
 // 打开GitHub页面
@@ -52,7 +54,9 @@ function onVersionClick() {
     chrome.storage.local.set({ debugMode: true }, () => {
       alert('调试模式已开启！');
       // 打开配置页面
-      chrome.runtime.openOptionsPage();
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('options.html')
+      });
     });
     clickCount = 0;
   }
