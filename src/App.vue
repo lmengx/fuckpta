@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { PLUGIN_CONFIG } from './config.js';
 
 const autoPopup = ref(false);
 const aiEnabled = ref(false);
+const version = ref(PLUGIN_CONFIG.version);
 let clickCount = 0;
 let clickTimer = null;
 
@@ -15,7 +17,7 @@ function openOptions() {
 
 // 打开GitHub页面
 function openGitHub() {
-  window.open('https://github.com/lmengx/fuckpta', '_blank');
+  window.open(PLUGIN_CONFIG.githubRepo, '_blank');
 }
 
 // 打开问题反馈链接
@@ -104,7 +106,7 @@ onMounted(() => {
     </div>
 
   <footer class="footer">
-      <span class="version" @click="onVersionClick">v1.0</span>
+      <span class="version" @click="onVersionClick">v{{ version }}</span>
       <button @click="openFeedback" class="footer-link">问题反馈</button>
   </footer>
 

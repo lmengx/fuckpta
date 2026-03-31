@@ -1,8 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { PLUGIN_CONFIG, checkForUpdates } from '../config.js';
 
 // 插件信息页面组件
 const showPycatchModal = ref(false);
+const updateInfo = ref({
+  hasUpdate: false,
+  currentVersion: PLUGIN_CONFIG.version,
+  latestVersion: null,
+  source: null,
+  error: null,
+  checking: true
+});
 
 function openPycatchModal() {
   showPycatchModal.value = true;
@@ -12,12 +21,27 @@ function closePycatchModal() {
   showPycatchModal.value = false;
 }
 
+// 打开更新链接
+function openUpdateLink() {
+  const url = updateInfo.value.source === 'gitee' 
+    ? PLUGIN_CONFIG.giteeRepo 
+    : PLUGIN_CONFIG.githubRepo;
+  window.open(url, '_blank');
+}
+
 // 页面加载完成后初始化
-onMounted(() => {
+onMounted(async () => {
   // 监听打开PyCatch模态框的事件
   window.addEventListener('openPycatchModal', () => {
     showPycatchModal.value = true;
   });
+  
+  // 检查更新
+  const result = await checkForUpdates();
+  updateInfo.value = {
+    ...result,
+    checking: false
+  };
 });
 </script>
 
@@ -28,7 +52,16 @@ onMounted(() => {
       <h3 class="section-title">插件信息</h3>
       <div class="section-content">
         <p>PTA 答题辅助是一个帮助用户在 PTA 平台上更高效完成编程题目的 Chrome 扩展。</p>
-        <p>版本: 1.0.0</p>
+        <p>当前版本: {{ updateInfo.currentVersion }}</p>
+        <div class="update-status">
+          <span v-if="updateInfo.checking" class="checking">正在检查更新...</span>
+          <span v-else-if="updateInfo.error" class="error">{{ updateInfo.error }}</span>
+          <span v-else-if="updateInfo.hasUpdate" class="has-update">
+            发现新版本: {{ updateInfo.latestVersion }}
+            <button class="update-btn" @click="openUpdateLink">立即更新</button>
+          </span>
+          <span v-else class="no-update">已是最新版本</span>
+        </div>
       </div>
     </div>
     
@@ -172,6 +205,52 @@ a:hover {
 
 .color-link:hover {
   color: #2ad87d;
+}
+
+/* 更新状态样式 */
+.update-status {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.update-status .checking {
+  color: #666;
+}
+
+.update-status .error {
+  color: #ff4d4f;
+}
+
+.update-status .has-update {
+  color: #ff4d4f;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.update-status .no-update {
+  color: #32F08C;
+}
+
+.update-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #ff4d4f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.update-btn:hover {
+  background-color: #ff7875;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
 }
 
 /* Modal Styles */

@@ -5,7 +5,7 @@
   "description": "__MSG_extDescription__",
   "default_locale": "zh_CN",
   "permissions": ["activeTab", "storage", "tabs"],
-  "host_permissions": ["*://pintia.cn/*"],
+  "host_permissions": ["*://pintia.cn/*", "*://raw.githubusercontent.com/*", "*://gitee.com/*"],
   "action": {
     "default_popup": "index.html"
   },
