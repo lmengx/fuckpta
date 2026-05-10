@@ -3089,6 +3089,90 @@ window.addEventListener('load', function() {
 
 // 初始检查
 checkAutoPopup();
+checkGlobalVersion();
+
+// 检查全局版本更新（遮罩弹窗）
+async function checkGlobalVersion() {
+  try {
+    const result = await new Promise(resolve => {
+      chrome.storage.local.get(['ignoredVersion'], resolve);
+    });
+    const ignoredVersion = result.ignoredVersion || '0.0.0';
+
+    let verData = null;
+
+    // 尝试 GitHub
+    try {
+      const resp = await fetch('https://raw.githubusercontent.com/lmengx/fuckpta/main/ver.json', { cache: 'no-cache' });
+      if (resp.ok) verData = await resp.json();
+    } catch (e) { /* fallback */ }
+
+    // GitHub 失败则尝试 Gitee
+    if (!verData) {
+      try {
+        const resp = await fetch('https://gitee.com/lmx12330/fuckpta/raw/main/ver.json', { cache: 'no-cache' });
+        if (resp.ok) verData = await resp.json();
+      } catch (e) { /* fallback */ }
+    }
+
+    if (!verData || !verData.version) return;
+
+    const latestVersion = verData.version;
+    if (compareVersionStr(ignoredVersion, latestVersion) >= 0) return;
+
+    showVersionOverlay(latestVersion, verData.changes || []);
+  } catch (e) {
+    // 静默失败
+  }
+}
+
+function compareVersionStr(v1, v2) {
+  const p1 = v1.split('.').map(Number);
+  const p2 = v2.split('.').map(Number);
+  const len = Math.max(p1.length, p2.length);
+  for (let i = 0; i < len; i++) {
+    const a = p1[i] || 0;
+    const b = p2[i] || 0;
+    if (a < b) return -1;
+    if (a > b) return 1;
+  }
+  return 0;
+}
+
+function showVersionOverlay(latestVersion, changes) {
+  const overlay = document.createElement('div');
+  overlay.id = 'pta-version-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999999;backdrop-filter:blur(4px);';
+
+  const changesHtml = changes.length
+    ? '<ul style="margin-top:12px;padding-left:20px;font-size:13px;color:#888;line-height:1.8;text-align:left;">' + changes.map(c => '<li style="list-style:disc;">' + escapeHtml(c) + '</li>').join('') + '</ul>'
+    : '';
+
+  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:40px;width:460px;max-width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25);text-align:center;animation:fadeInUp 0.4s ease;">'
+    + '<h2 style="font-size:22px;color:#1a1a1a;margin:0 0 8px;">🎉 发现新版本</h2>'
+    + '<p style="font-size:32px;font-weight:700;color:#32F08C;margin:8px 0;">v' + escapeHtml(latestVersion) + '</p>'
+    + changesHtml
+    + '<div style="display:flex;gap:12px;margin-top:24px;justify-content:center;">'
+    + '<button id="pta-ver-update-btn" style="padding:12px 32px;border:none;border-radius:8px;background:#32F08C;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">前往更新</button>'
+    + '<button id="pta-ver-ignore-btn" style="padding:12px 32px;border:1px solid #d9d9d9;border-radius:8px;background:#fff;color:#666;font-size:15px;cursor:pointer;">忽略此版本</button>'
+    + '</div></div>';
+
+  // 动画样式
+  const style = document.createElement('style');
+  style.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}';
+  overlay.appendChild(style);
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#pta-ver-update-btn').addEventListener('click', () => {
+    window.open('https://github.com/lmengx/fuckpta', '_blank');
+  });
+
+  overlay.querySelector('#pta-ver-ignore-btn').addEventListener('click', () => {
+    chrome.storage.local.set({ ignoredVersion: latestVersion });
+    overlay.remove();
+  });
+}
 
 // 提取提交结果页面内容
 async function extractSubmissionResult() {
