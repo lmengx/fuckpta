@@ -35,7 +35,34 @@ const presetLanguages = [
   { value: 'shell', label: 'Shell' },
   { value: 'bash', label: 'Bash' },
   { value: 'powershell', label: 'PowerShell' },
-  { value: 'ps', label: 'PowerShell' }
+  { value: 'ps', label: 'PowerShell' },
+
+  // 👇 下面是我给你加的【冷门/玩具/极小众语言】
+  { value: 'assembly', label: 'Assembly' },
+  { value: 'asm', label:'汇编语言' },
+  { value: 'brainfuck', label: 'Brainfuck' },
+  { value: 'bf', label: 'Brainfuck' },
+  { value: 'intercal', label: 'INTERCAL' },
+  { value: 'whitespace', label: 'Whitespace' },
+  { value: 'ook', label: 'Ook!' },
+  { value: 'piet', label: 'Piet' },
+  { value: 'malbolge', label: 'Malbolge' },
+  { value: 'cow', label: 'COW' },
+  { value: 'lolcode', label: 'LOLCODE' },
+  { value: 'chef', label: 'Chef' },
+  { value: 'binary', label: 'Binary' },
+  { value: 'hex', label: 'Hex' },
+  { value: 'fortran', label: 'Fortran' },
+  { value: 'cobol', label: 'COBOL' },
+  { value: 'pascal', label: 'Pascal' },
+  { value: 'ada', label: 'Ada' },
+  { value: 'prolog', label: 'Prolog' },
+  { value: 'lisp', label: 'Lisp' },
+  { value: 'clojure', label: 'Clojure' },
+  { value: 'erlang', label: 'Erlang' },
+  { value: 'elixir', label: 'Elixir' },
+  { value: 'haskell', label: 'Haskell' },
+  { value: 'ocaml', label: 'OCaml' }
 ];
 
 // 是否显示下拉建议

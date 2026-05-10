@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import ChatTest from './ChatTest.vue';
 
 // 配置数据
 const config = ref({
@@ -41,6 +42,18 @@ const availableIcons = ref([
   'icon4.png',
   'icon5.png'
 ]);
+
+// 右键菜单相关
+const showContextMenu = ref(false);
+const contextMenuPosition = ref({ x: 0, y: 0 });
+const contextMenuModel = ref('');
+const contextMenuModelIndex = ref(-1);
+
+// 对话测试弹窗
+const showChatTest = ref(false);
+const chatTestModel = ref('');
+const chatTestApiKey = ref('');
+const chatTestApiUrl = ref('');
 
 // 显示状态消息
 function showMessage(message, type = 'success') {
@@ -472,6 +485,47 @@ function getApiUrlPreview(url) {
   }
 }
 
+// 处理模型项右键菜单
+function handleModelContextMenu(event, model, modelIndex) {
+  event.preventDefault();
+  contextMenuModel.value = model;
+  contextMenuModelIndex.value = modelIndex;
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY };
+  showContextMenu.value = true;
+  
+  // 点击其他地方关闭菜单
+  document.addEventListener('click', closeContextMenu);
+}
+
+// 关闭右键菜单
+function closeContextMenu() {
+  showContextMenu.value = false;
+  document.removeEventListener('click', closeContextMenu);
+}
+
+// 打开对话测试
+function openChatTest() {
+  if (!selectedSource.value) return;
+  
+  const apiKey = selectedSource.value.keys.find(key => key.trim());
+  if (!apiKey) {
+    showMessage('请先添加 API Key', 'error');
+    closeContextMenu();
+    return;
+  }
+  
+  chatTestModel.value = contextMenuModel.value;
+  chatTestApiKey.value = apiKey;
+  chatTestApiUrl.value = selectedSource.value.url;
+  showChatTest.value = true;
+  closeContextMenu();
+}
+
+// 关闭对话测试
+function closeChatTest() {
+  showChatTest.value = false;
+}
+
 // 页面加载完成后初始化
 onMounted(() => {
   loadConfig();
@@ -620,6 +674,7 @@ onMounted(() => {
               v-for="(model, modelIndex) in selectedSource.models" 
               :key="modelIndex"
               class="model-item"
+              @contextmenu="handleModelContextMenu($event, model, modelIndex)"
             >
               <input 
                 type="text" 
@@ -807,6 +862,30 @@ onMounted(() => {
           <button class="btn-cancel" @click="closeEditIconModal">取消</button>
           <button class="btn-confirm" @click="saveIconSettings">保存</button>
         </div>
+      </div>
+    </div>
+    
+    <!-- 右键菜单 -->
+    <div 
+      v-if="showContextMenu" 
+      class="context-menu"
+      :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
+      @click.stop
+    >
+      <button class="context-menu-item" @click="openChatTest">
+        📝 对话测试
+      </button>
+    </div>
+    
+    <!-- 对话测试弹窗 -->
+    <div v-if="showChatTest" class="chat-test-overlay" @click="closeChatTest">
+      <div class="chat-test-container" @click.stop>
+        <ChatTest
+          :model="chatTestModel"
+          :api-key="chatTestApiKey"
+          :api-url="chatTestApiUrl"
+          @close="closeChatTest"
+        />
       </div>
     </div>
   </div>
@@ -1626,5 +1705,57 @@ input:checked + .toggle-slider:before {
   width: 30px;
   height: 30px;
   object-fit: contain;
+}
+
+/* 右键菜单 */
+.context-menu {
+  position: fixed;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  z-index: 10000;
+  min-width: 120px;
+}
+
+.context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  color: #333;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.context-menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+/* 对话测试弹窗 */
+.chat-test-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+
+.chat-test-container {
+  width: 600px;
+  height: 500px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 </style>

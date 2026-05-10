@@ -364,29 +364,32 @@ function getConfig(callback) {
 function checkAutoPopup() {
   getConfig(function(config) {
     if (config.autoPopup) {
-      // 检查当前页面类型
-      const isProblem = isProblemPage() || isProblemListPage();
+      const isProgrammingList = isProgrammingListPage();
+      const isProgrammingDetail = isProgrammingDetailPage();
+      const isChoice = isChoiceQuestionPage();
       const isSubmission = isSubmissionResultPage();
-      
-      if (isProblem) {
-        // 移除旧的浮动窗口（如果存在）
+
+      if (isChoice) {
         removeFloatingWindow();
-        // 创建新的浮动窗口
         createFloatingWindow();
-        // 延迟调用，确保DOM已经创建
         setTimeout(() => {
-          // 根据页面类型执行不同的操作
-          if (isSpecificProblemPage()) {
-            extractProblemTextWithDelay();
-          } else if (isProblemListPage()) {
-            fetchProblemList();
-          }
+          fetchChoiceQuestions();
+        }, 100);
+      } else if (isProgrammingList) {
+        removeFloatingWindow();
+        createFloatingWindow();
+        setTimeout(() => {
+          fetchProblemList();
+        }, 100);
+      } else if (isProgrammingDetail) {
+        removeFloatingWindow();
+        createFloatingWindow();
+        setTimeout(() => {
+          extractProblemTextWithDelay();
         }, 100);
       } else if (isSubmission) {
-        // 提交结果页面处理
         extractSubmissionResultWithDelay();
       } else {
-        // 其他页面，移除浮动窗口
         removeFloatingWindow();
       }
     } else {
@@ -409,36 +412,34 @@ function extractSubmissionResultWithDelay() {
   }, 10);
 }
 
-// 检查当前页面是否是 PTA 答题页面
-function isProblemPage() {
+// 检查是否是编程题详情页（/type/7?problemSetProblemId=xxx）
+function isProgrammingDetailPage() {
   const url = window.location.href;
-  return /\/problem-sets\/.+\/exam\/problems\/.+/.test(url);
+  return /\/problem-sets\/.+\/exam\/problems\/type\/7/.test(url) && 
+         /problemSetProblemId=\d+/.test(url);
 }
 
-// 检查是否是具体题目页面（包含 problemSetProblemId）
-function isSpecificProblemPage() {
+// 检查是否是编程题列表页（/type/7 不含 problemSetProblemId）
+function isProgrammingListPage() {
   const url = window.location.href;
-  return /problemSetProblemId=\d+/.test(url);
+  return /\/problem-sets\/.+\/exam\/problems\/type\/7$/.test(url);
+}
+
+// 检查是否是选择题页面（/type/2）
+function isChoiceQuestionPage() {
+  const url = window.location.href;
+  return /\/problem-sets\/.+\/exam\/problems\/type\/2/.test(url);
 }
 
 // 检查是否是提交结果页面
 function isSubmissionResultPage() {
   const url = window.location.href;
-  // 检查URL是否包含提交结果页面的特征
   return url.includes('/problem-sets/') && url.includes('/exam/submissions/');
-}
-
-// 检查是否是题目列表页面
-function isProblemListPage() {
-  const url = window.location.href;
-  // 匹配题目列表页面，不包含problemSetProblemId参数
-  return /\/problem-sets\/.+\/exam\/problems\/type\/\d+/.test(url) && 
-         !/problemSetProblemId=\d+/.test(url);
 }
 
 // 获取题目列表
 async function fetchProblemList() {
-  if (!isProblemListPage()) {
+  if (!isProgrammingListPage()) {
     return;
   }
 
@@ -926,9 +927,96 @@ async function fetchProblemList() {
   }
 }
 
+// 获取选择题列表
+async function fetchChoiceQuestions() {
+  if (!isChoiceQuestionPage()) {
+    return;
+  }
+
+  try {
+    const url = window.location.href;
+    const problemSetMatch = url.match(/\/problem-sets\/(\d+)/);
+    if (!problemSetMatch) {
+      console.log('无法从URL中提取problemSetId');
+      return;
+    }
+    const problemSetId = problemSetMatch[1];
+
+    const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
+      headers: {
+        accept: 'application/json;charset=UTF-8',
+        'content-type': 'application/json;charset=UTF-8',
+        'x-lollipop': getLollipop(),
+        'x-marshmallow': ''
+      },
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!examResponse.ok) {
+      console.log('获取examId失败:', examResponse.status);
+      return;
+    }
+
+    const examData = await examResponse.json();
+    const examId = examData.exam?.id;
+    if (!examId) {
+      console.log('无法获取examId');
+      return;
+    }
+
+    window.choiceExamId = examId;
+    window.choiceProblemSetId = problemSetId;
+
+    const listResponse = await fetch(
+      `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems?exam_id=${examId}&problem_type=MULTIPLE_CHOICE`,
+      {
+        headers: {
+          accept: 'application/json;charset=UTF-8',
+          'content-type': 'application/json;charset=UTF-8',
+          'x-lollipop': getLollipop(),
+          'x-marshmallow': ''
+        },
+        method: 'GET',
+        credentials: 'include'
+      }
+    );
+
+    if (!listResponse.ok) {
+      console.log('获取选择题列表失败:', listResponse.status);
+      return;
+    }
+
+    const data = await listResponse.json();
+
+    if (data.problemSetProblems) {
+      const questions = data.problemSetProblems.map(p => ({
+        id: p.id,
+        content: p.content || p.description || '',
+        choices: p.problemConfig?.multipleChoiceProblemConfig?.choices || []
+      }));
+      window.choiceQuestions = questions;
+      console.log('选择题列表（精简）:', questions);
+
+      const countEl = document.getElementById('pta-choice-count');
+      if (countEl) {
+        countEl.textContent = `共 ${questions.length} 题`;
+      }
+      const batchBtn = document.getElementById('pta-choice-batch-btn');
+      if (batchBtn) {
+        batchBtn.disabled = false;
+      }
+    } else {
+      console.log('选择题列表响应:', data);
+    }
+  } catch (error) {
+    console.error('获取选择题列表出错:', error);
+  }
+}
+
 // 获取题目文本
 async function extractProblemText() {
-  if (!isSpecificProblemPage()) {
+  if (!isProgrammingDetailPage()) {
     return null;
   }
   
@@ -2117,7 +2205,9 @@ function createFloatingWindow() {
   floatWindow.id = 'pta-helper-float';
 
   // 根据页面类型选择不同的内容
-  if (isProblemListPage()) {
+  if (isChoiceQuestionPage()) {
+    floatWindow.innerHTML = createChoiceQuestionHTML();
+  } else if (isProgrammingListPage()) {
     floatWindow.innerHTML = createProblemListHTML();
   } else {
     floatWindow.innerHTML = createCodeEditorHTML();
@@ -2409,7 +2499,9 @@ function createFloatingWindow() {
   });
 
   // 根据页面类型初始化不同的功能
-  if (isProblemListPage()) {
+  if (isChoiceQuestionPage()) {
+    initChoiceQuestionEvents(floatWindow);
+  } else if (isProgrammingListPage()) {
     initProblemListEvents(floatWindow);
   } else {
     initCodeEditorEvents(floatWindow);
@@ -2440,6 +2532,210 @@ function createCodeEditorHTML() {
         <button id="pta-retry-btn" class="btn-retry">重新生成</button>
       </div>
       <div id="pta-status"></div>
+    </div>
+  `;
+}
+
+// 初始化选择题事件
+function initChoiceQuestionEvents(floatWindow) {
+  const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
+  if (batchBtn) {
+    batchBtn.addEventListener('click', () => {
+      batchProcessChoiceQuestions(floatWindow);
+    });
+  }
+
+  const countEl = floatWindow.querySelector('#pta-choice-count');
+  if (countEl && window.choiceQuestions) {
+    countEl.textContent = `共 ${window.choiceQuestions.length} 题`;
+  }
+  const btn = floatWindow.querySelector('#pta-choice-batch-btn');
+  if (btn && window.choiceQuestions && window.choiceQuestions.length > 0) {
+    btn.disabled = false;
+  }
+}
+
+// 分批处理选择题（每次20题）
+async function batchProcessChoiceQuestions(floatWindow) {
+  const questions = window.choiceQuestions;
+  if (!questions || questions.length === 0) {
+    return;
+  }
+
+  const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
+  const progressEl = floatWindow.querySelector('#pta-choice-progress');
+  const progressText = floatWindow.querySelector('#pta-choice-progress-text');
+  const progressBar = floatWindow.querySelector('#pta-choice-progress-bar');
+  const resultsEl = floatWindow.querySelector('#pta-choice-results');
+  const statusEl = floatWindow.querySelector('#pta-choice-status');
+
+  const config = await new Promise(resolve => { getConfig(resolve); });
+  const apiConfig = getActiveApiConfig(config);
+  if (!config.aiEnabled || !apiConfig) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#f44336';
+    statusEl.style.background = '#ffebee';
+    statusEl.textContent = 'AI 未启用或未配置 API 密钥';
+    return;
+  }
+
+  const BATCH_SIZE = 20;
+  const total = questions.length;
+  let current = 0;
+  const allAnswers = {}; // 收集所有答案
+
+  if (batchBtn) batchBtn.disabled = true;
+  progressEl.style.display = 'block';
+  resultsEl.innerHTML = '';
+
+  const choiceLetter = (i) => String.fromCharCode(65 + i);
+
+  for (let i = 0; i < total; i += BATCH_SIZE) {
+    const batch = questions.slice(i, i + BATCH_SIZE);
+    const promptItems = batch.map(q =>
+      `题目${q.id}: ${q.content}\n选项: ${q.choices.map((c, ci) => choiceLetter(ci) + '. ' + c).join(', ')}`
+    ).join('\n\n');
+
+    const systemPrompt = `你是一个专业的AI做题工具
+请直接输出**符合格式的JSON**，不要解释、不要说明、不要多余内容。
+
+格式如下
+[
+  "A",
+  "B"
+]
+
+以下是题目内容：
+${promptItems}`;
+
+    try {
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: '' }
+      ];
+      const raw = await generateAIResponse(apiConfig.url, apiConfig.key, apiConfig.model, messages);
+      const jsonStr = raw.replace(/```[\w]*\n?/g, '').trim();
+      const answers = JSON.parse(jsonStr);
+
+      if (Array.isArray(answers)) {
+        batch.forEach((q, idx) => {
+          const answer = answers[idx] || '?';
+          allAnswers[q.id] = answer;
+          resultsEl.innerHTML += `<div style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px;">
+            <span style="color:#999;">${q.id.slice(-6)}</span>
+            <span style="margin:0 8px;">${q.content}</span>
+            <span style="color:#32F08C;font-weight:bold;">→ ${answer}</span>
+          </div>`;
+        });
+      } else {
+        throw new Error('AI 返回格式不正确');
+      }
+
+      current += batch.length;
+      const pct = Math.round((current / total) * 100);
+      progressText.textContent = `${current}/${total}`;
+      progressBar.style.width = pct + '%';
+    } catch (e) {
+      batch.forEach(q => {
+        resultsEl.innerHTML += `<div style="padding:6px 8px;border-bottom:1px solid #ffebee;font-size:13px;color:#f44336;">
+          <span style="color:#999;">${q.id.slice(-6)}</span>
+          <span style="margin:0 8px;">${q.content}</span>
+          <span>→ 解析失败</span>
+        </div>`;
+      });
+      current += batch.length;
+      const pct = Math.round((current / total) * 100);
+      progressText.textContent = `${current}/${total}`;
+      progressBar.style.width = pct + '%';
+    }
+  }
+
+  // 提交选择题答案
+  const examId = window.choiceExamId;
+  if (examId && Object.keys(allAnswers).length > 0) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#2196F3';
+    statusEl.style.background = '#e3f2fd';
+    statusEl.textContent = '正在提交答案...';
+
+    try {
+      const details = questions
+        .filter(q => allAnswers[q.id])
+        .map(q => ({
+          problemId: '0',
+          problemSetProblemId: q.id,
+          multipleChoiceSubmissionDetail: {
+            answer: allAnswers[q.id]
+          }
+        }));
+
+      const submitBody = {
+        problemType: 'MULTIPLE_CHOICE',
+        details: details
+      };
+
+      const submitResponse = await fetch(`https://pintia.cn/api/exams/${examId}/exam-submissions`, {
+        headers: {
+          accept: 'application/json;charset=UTF-8',
+          'content-type': 'application/json;charset=UTF-8',
+          'x-lollipop': getLollipop(),
+          'x-marshmallow': ''
+        },
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify(submitBody)
+      });
+
+      if (submitResponse.ok) {
+        statusEl.style.color = '#32F08C';
+        statusEl.style.background = '#e8f5e9';
+        statusEl.textContent = `提交成功！共 ${details.length} 题`;
+      } else {
+        const errData = await submitResponse.json().catch(() => ({}));
+        statusEl.style.color = '#f44336';
+        statusEl.style.background = '#ffebee';
+        statusEl.textContent = `提交失败: ${submitResponse.status} ${errData.error?.message || ''}`;
+      }
+    } catch (e) {
+      statusEl.style.color = '#f44336';
+      statusEl.style.background = '#ffebee';
+      statusEl.textContent = '提交失败: ' + e.message;
+    }
+  } else {
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#32F08C';
+    statusEl.style.background = '#e8f5e9';
+    statusEl.textContent = `处理完成！共 ${total} 题`;
+  }
+
+  if (batchBtn) batchBtn.disabled = false;
+}
+
+// 创建选择题页面HTML
+function createChoiceQuestionHTML() {
+  return `
+    <div class="pta-float-header">
+      <span>PTA 答题辅助 - 选择题</span>
+      <button class="pta-float-close">×</button>
+    </div>
+    <div class="pta-float-body">
+      <div id="pta-choice-status" style="display:none;margin-bottom:12px;padding:10px;border-radius:6px;font-size:13px;text-align:center;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span id="pta-choice-count" style="font-size:14px;color:#666;">加载中...</span>
+        <button id="pta-choice-batch-btn" class="btn-complete-all" disabled style="width:auto;padding:8px 24px;">一键完成所有选择题</button>
+      </div>
+      <div id="pta-choice-progress" style="display:none;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#999;margin-bottom:4px;">
+          <span>处理进度</span>
+          <span id="pta-choice-progress-text">0/0</span>
+        </div>
+        <div style="width:100%;height:6px;background:#e8e8e8;border-radius:3px;overflow:hidden;">
+          <div id="pta-choice-progress-bar" style="width:0%;height:100%;background:#32F08C;border-radius:3px;transition:width 0.3s;"></div>
+        </div>
+      </div>
+      <div id="pta-choice-results" style="max-height:400px;overflow-y:auto;">
+        <div style="text-align:center;padding:20px;color:#999;">加载中...</div>
+      </div>
     </div>
   `;
 }
@@ -2476,11 +2772,22 @@ function initProblemListEvents(floatWindow) {
 function initCodeEditorEvents(floatWindow) {
   const codeInput = floatWindow.querySelector('#pta-code-input');
   const codeHighlight = floatWindow.querySelector('#pta-code-highlight');
+  
+  // 高亮节流控制
+  let inputHighlightTimeout = null;
+  const INPUT_HIGHLIGHT_DELAY = 300; // 输入高亮延迟（毫秒）
 
-  // 同步输入和高亮
+  // 同步输入和高亮（带节流）
   codeInput.addEventListener('input', function() {
     codeHighlight.innerHTML = escapeHtml(codeInput.value);
-    Prism.highlightElement(codeHighlight);
+    
+    // 使用节流限制高亮频率
+    if (inputHighlightTimeout) {
+      clearTimeout(inputHighlightTimeout);
+    }
+    inputHighlightTimeout = setTimeout(() => {
+      Prism.highlightElement(codeHighlight);
+    }, INPUT_HIGHLIGHT_DELAY);
   });
 
   // 同步滚动
@@ -2752,9 +3059,9 @@ function checkUrlChange() {
     currentUrl = window.location.href;
     debugLog('URL 变化', {
       url: currentUrl,
-      isProblemPage: isProblemPage(),
-      isSpecificProblemPage: isSpecificProblemPage(),
-      isProblemListPage: isProblemListPage(),
+      isProgrammingListPage: isProgrammingListPage(),
+      isProgrammingDetailPage: isProgrammingDetailPage(),
+      isChoiceQuestionPage: isChoiceQuestionPage(),
       isSubmissionResultPage: isSubmissionResultPage()
     });
     // console.log('是否是提交结果页面:', isSubmissionResultPage());
@@ -3232,6 +3539,13 @@ function createSubmissionResultWindow() {
         let aiResponse = '';
         aiResultSection.style.display = 'block';
         
+        // 高亮节流控制
+        let highlightTimeout = null;
+        let lastHighlightTime = 0;
+        const MIN_HIGHLIGHT_INTERVAL = 500; // 最小高亮间隔（毫秒）
+        const LARGE_TEXT_THRESHOLD = 5000; // 大文本阈值（字符数）
+        const LARGE_TEXT_INTERVAL = 2000; // 大文本时的高亮间隔
+        
         await streamAIResponse(apiConfig.url, apiConfig.key, apiConfig.model, messages, 
           (chunk) => {
             aiResponse += chunk;
@@ -3240,10 +3554,35 @@ function createSubmissionResultWindow() {
             const cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
             aiCodeInput.value = cleanCode;
             aiCodeHighlight.innerHTML = escapeHtml(cleanCode);
-            Prism.highlightElement(aiCodeHighlight);
+            
+            // 限制高亮频率
+            const now = Date.now();
+            const textLength = cleanCode.length;
+            const interval = textLength > LARGE_TEXT_THRESHOLD ? LARGE_TEXT_INTERVAL : MIN_HIGHLIGHT_INTERVAL;
+            
+            if (now - lastHighlightTime >= interval) {
+              // 立即执行一次高亮
+              Prism.highlightElement(aiCodeHighlight);
+              lastHighlightTime = now;
+            } else {
+              // 延迟执行高亮，如果有新的内容进来会取消之前的延迟
+              if (highlightTimeout) {
+                clearTimeout(highlightTimeout);
+              }
+              highlightTimeout = setTimeout(() => {
+                Prism.highlightElement(aiCodeHighlight);
+                lastHighlightTime = Date.now();
+              }, interval);
+            }
           },
           () => {
             // 完成时的处理
+            // 确保最后一次高亮被执行
+            if (highlightTimeout) {
+              clearTimeout(highlightTimeout);
+            }
+            Prism.highlightElement(aiCodeHighlight);
+            
             debugLog('AI 返回的内容（纠错功能）', aiResponse);
             statusDiv.textContent = '答案获取成功！';
             statusDiv.className = 'success';
