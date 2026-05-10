@@ -1,19 +1,22 @@
 // 插件配置信息
+// 版本号在构建时由 vite.config.js 从 ver.json 注入
+const BUILD_VERSION = typeof __PLUGIN_VERSION__ !== 'undefined' ? __PLUGIN_VERSION__ : '0.0.0';
+
 export const PLUGIN_CONFIG = {
-  // 当前版本号
-  version: '1.0.0',
+  // 当前版本号（构建时从 ver.json 动态注入）
+  version: BUILD_VERSION,
   
   // GitHub仓库地址
   githubRepo: 'https://github.com/lmengx/fuckpta',
   
   // GitHub版本文件地址
-  githubVersionUrl: 'https://raw.githubusercontent.com/lmengx/fuckpta/main/ver.txt',
+  githubVersionUrl: 'https://raw.githubusercontent.com/lmengx/fuckpta/main/ver.json',
   
   // Gitee仓库地址
   giteeRepo: 'https://gitee.com/lmx12330/fuckpta',
   
   // Gitee版本文件地址
-  giteeVersionUrl: 'https://gitee.com/lmx12330/fuckpta/raw/main/ver.txt'
+  giteeVersionUrl: 'https://gitee.com/lmx12330/fuckpta/raw/main/ver.json'
 };
 
 // 比较版本号
@@ -39,7 +42,7 @@ export function compareVersion(v1, v2) {
 export async function checkForUpdates() {
   try {
     // 首先尝试从GitHub获取最新版本
-    let response = await fetch(PLUGIN_CONFIG.githubVersionUrl, {
+    const response = await fetch(PLUGIN_CONFIG.githubVersionUrl, {
       method: 'GET',
       cache: 'no-cache'
     });
@@ -48,7 +51,8 @@ export async function checkForUpdates() {
       throw new Error('GitHub请求失败');
     }
     
-    const latestVersion = (await response.text()).trim();
+    const verData = await response.json();
+    const latestVersion = verData.version;
     
     // 比较版本号
     const comparison = compareVersion(PLUGIN_CONFIG.version, latestVersion);
@@ -57,6 +61,7 @@ export async function checkForUpdates() {
       hasUpdate: comparison < 0,
       currentVersion: PLUGIN_CONFIG.version,
       latestVersion: latestVersion,
+      changes: verData.changes || [],
       source: 'github',
       githubUrl: PLUGIN_CONFIG.githubRepo,
       giteeUrl: PLUGIN_CONFIG.giteeRepo
@@ -75,7 +80,8 @@ export async function checkForUpdates() {
         throw new Error('Gitee请求失败');
       }
       
-      const latestVersion = (await response.text()).trim();
+      const verData = await response.json();
+      const latestVersion = verData.version;
       
       // 比较版本号
       const comparison = compareVersion(PLUGIN_CONFIG.version, latestVersion);
@@ -84,6 +90,7 @@ export async function checkForUpdates() {
         hasUpdate: comparison < 0,
         currentVersion: PLUGIN_CONFIG.version,
         latestVersion: latestVersion,
+        changes: verData.changes || [],
         source: 'gitee',
         githubUrl: PLUGIN_CONFIG.githubRepo,
         giteeUrl: PLUGIN_CONFIG.giteeRepo
@@ -95,6 +102,7 @@ export async function checkForUpdates() {
         hasUpdate: false,
         currentVersion: PLUGIN_CONFIG.version,
         latestVersion: null,
+        changes: [],
         source: null,
         error: '无法连接到更新服务器',
         githubUrl: PLUGIN_CONFIG.githubRepo,

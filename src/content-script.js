@@ -245,7 +245,19 @@ const defaultConfig = {
 题目如下：
 {problem content}
 错误源码如下：
-{res_code}`
+{res_code}`,
+  choiceBatchSize: 20,
+  choicePrompt: `你是一个专业的AI做题工具
+请直接输出**符合格式的JSON**，不要解释、不要说明、不要多余内容。
+
+格式如下
+[
+  "A",
+  "B"
+]
+
+以下是题目内容：
+{problem content}`
 };
 
 // 获取所有已启用的模型列表
@@ -2579,16 +2591,17 @@ async function batchProcessChoiceQuestions(floatWindow) {
     return;
   }
 
-  const BATCH_SIZE = 20;
+  const BATCH_SIZE = config.choiceBatchSize || 20;
   const total = questions.length;
   let current = 0;
-  const allAnswers = {}; // 收集所有答案
+  const allAnswers = {};
 
   if (batchBtn) batchBtn.disabled = true;
   progressEl.style.display = 'block';
   resultsEl.innerHTML = '';
 
   const choiceLetter = (i) => String.fromCharCode(65 + i);
+  const promptTemplate = config.choicePrompt || defaultConfig.choicePrompt;
 
   for (let i = 0; i < total; i += BATCH_SIZE) {
     const batch = questions.slice(i, i + BATCH_SIZE);
@@ -2596,17 +2609,7 @@ async function batchProcessChoiceQuestions(floatWindow) {
       `题目${q.id}: ${q.content}\n选项: ${q.choices.map((c, ci) => choiceLetter(ci) + '. ' + c).join(', ')}`
     ).join('\n\n');
 
-    const systemPrompt = `你是一个专业的AI做题工具
-请直接输出**符合格式的JSON**，不要解释、不要说明、不要多余内容。
-
-格式如下
-[
-  "A",
-  "B"
-]
-
-以下是题目内容：
-${promptItems}`;
+    const systemPrompt = promptTemplate.replace('{problem content}', promptItems);
 
     try {
       const messages = [

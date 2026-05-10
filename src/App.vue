@@ -105,6 +105,7 @@ onMounted(async () => {
           latestVersion: updateInfo.latestVersion,
           hasUpdate: updateInfo.hasUpdate,
           source: updateInfo.source,
+          changes: updateInfo.changes,
           error: updateInfo.error
         });
       }

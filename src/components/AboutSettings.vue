@@ -8,6 +8,7 @@ const updateInfo = ref({
   hasUpdate: false,
   currentVersion: PLUGIN_CONFIG.version,
   latestVersion: null,
+  changes: [],
   source: null,
   error: null,
   checking: true
@@ -51,6 +52,7 @@ onMounted(async () => {
         latestVersion: result.latestVersion,
         hasUpdate: result.hasUpdate,
         source: result.source,
+        changes: result.changes,
         error: result.error
       });
     }
@@ -72,6 +74,9 @@ onMounted(async () => {
           <span v-else-if="updateInfo.hasUpdate" class="has-update">
             发现新版本: {{ updateInfo.latestVersion }}
             <button class="update-btn" @click="openUpdateLink">立即更新</button>
+            <ul v-if="updateInfo.changes && updateInfo.changes.length" class="changes-list">
+              <li v-for="(change, i) in updateInfo.changes" :key="i">{{ change }}</li>
+            </ul>
           </span>
           <span v-else class="no-update">已是最新版本</span>
         </div>
@@ -264,6 +269,18 @@ a:hover {
   background-color: #ff7875;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+}
+
+.changes-list {
+  margin-top: 12px;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #999;
+  line-height: 1.8;
+}
+
+.changes-list li {
+  list-style: disc;
 }
 
 /* Modal Styles */

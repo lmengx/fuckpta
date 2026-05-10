@@ -25,7 +25,19 @@ const config = ref({
 题目如下：
 {problem content}
 错误源码如下：
-{res_code}`
+{res_code}`,
+  choiceBatchSize: 20,
+  choicePrompt: `你是一个专业的AI做题工具
+请直接输出**符合格式的JSON**，不要解释、不要说明、不要多余内容。
+
+格式如下
+[
+  "A",
+  "B"
+]
+
+以下是题目内容：
+{problem content}`
 });
 
 // API 源数据
@@ -94,7 +106,7 @@ function showMessage(message, type = 'success') {
 
 // 加载配置
 function loadConfig() {
-  chrome.storage.local.get(['aiEnabled', 'modelSelectMode', 'selectedModelId', 'apiSources', 'aiSystemPrompt', 'aiErrorPrompt'], (result) => {
+  chrome.storage.local.get(['aiEnabled', 'modelSelectMode', 'selectedModelId', 'apiSources', 'aiSystemPrompt', 'aiErrorPrompt', 'choiceBatchSize', 'choicePrompt'], (result) => {
     // 合并默认配置和用户配置
     config.value = {
       ...config.value,
@@ -202,6 +214,27 @@ loadConfig();
             <div class="setting-desc">AI 纠错时的提示词</div>
           </div>
           <textarea v-model="config.aiErrorPrompt" class="input-textarea" placeholder="你是一个编程助手..." @blur="autoSaveConfig"></textarea>
+        </div>
+      </div>
+    </div>
+    
+    <div class="setting-section">
+      <h3 class="section-title">选择题设置</h3>
+      <div class="setting-card">
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-name">每批题目数量</div>
+            <div class="setting-desc">每次发给 AI 的选择题数量（默认 20）</div>
+          </div>
+          <input type="number" v-model.number="config.choiceBatchSize" class="input-number" min="1" max="100" @change="autoSaveConfig">
+        </div>
+        
+        <div class="setting-item vertical">
+          <div class="setting-info">
+            <div class="setting-name">选择题提示词</div>
+            <div class="setting-desc">AI 做选择题时的提示词，使用 {problem content} 作为占位符</div>
+          </div>
+          <textarea v-model="config.choicePrompt" class="input-textarea" placeholder="你是一个专业的AI做题工具..." @blur="autoSaveConfig"></textarea>
         </div>
       </div>
     </div>
@@ -320,6 +353,23 @@ input:checked + .toggle-slider:before {
 }
 
 .input-select:focus {
+  outline: none;
+  border-color: #1a1a1a;
+  background-color: #fff;
+}
+
+.input-number {
+  width: 80px;
+  padding: 8px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #fafafa;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.input-number:focus {
   outline: none;
   border-color: #1a1a1a;
   background-color: #fff;
