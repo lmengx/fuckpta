@@ -119,9 +119,7 @@ onMounted(async () => {
     <div class="header">
       <h1>PTA 答题辅助</h1>
       <div class="actions">
-        <button v-if="hasUpdate" @click="openUpdateModal" class="icon-btn update-btn" title="发现新版本">
-          <img src="/icon/smallPanel/update.svg" alt="更新" class="icon">
-        </button>
+        <span v-if="hasUpdate" @click="openUpdateModal" class="update-badge" title="发现新版本">更新</span>
         <button @click="openOptions" class="icon-btn" title="设置">
           <img src="/icon/smallPanel/setting.svg" alt="设置" class="icon">
         </button>
@@ -342,21 +340,29 @@ input:checked + .toggle-slider:before {
   text-decoration: underline;
 }
 
-/* 更新按钮动画 */
-.update-btn {
-  animation: pulse 2s infinite;
+/* 更新徽标 */
+.update-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background-color: #c8f7c5;
+  color: #1a8a1a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  animation: badgePulse 2s infinite;
+  line-height: 1.6;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
+.update-badge:hover {
+  background-color: #a8e8a0;
+}
+
+@keyframes badgePulse {
+  0% { box-shadow: 0 0 0 0 rgba(50, 240, 140, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(50, 240, 140, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(50, 240, 140, 0); }
 }
 
 /* 弹窗样式 */
