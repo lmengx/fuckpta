@@ -3118,6 +3118,11 @@ async function checkGlobalVersion() {
     if (!verData || !verData.version) return;
 
     const latestVersion = verData.version;
+    const currentVersion = chrome.runtime.getManifest().version;
+
+    // 当前版本已经是最新，不需要弹窗
+    if (compareVersionStr(currentVersion, latestVersion) >= 0) return;
+    // 用户已忽略此版本（或更高版本）
     if (compareVersionStr(ignoredVersion, latestVersion) >= 0) return;
 
     showVersionOverlay(latestVersion, verData.changes || []);
