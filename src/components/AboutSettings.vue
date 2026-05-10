@@ -9,7 +9,7 @@ const updateInfo = ref({
   currentVersion: PLUGIN_CONFIG.version,
   latestVersion: null,
   changes: [],
-  source: null,
+  source: 'gitee',
   error: null,
   checking: true
 });

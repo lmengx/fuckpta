@@ -3165,7 +3165,7 @@ function showVersionOverlay(latestVersion, changes) {
   document.body.appendChild(overlay);
 
   overlay.querySelector('#pta-ver-update-btn').addEventListener('click', () => {
-    window.open('https://github.com/lmengx/fuckpta', '_blank');
+    window.open('https://gitee.com/lmx12330/fuckpta/releases/', '_blank');
   });
 
   overlay.querySelector('#pta-ver-ignore-btn').addEventListener('click', () => {
