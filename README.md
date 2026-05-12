@@ -8,7 +8,7 @@ PTA 答题辅助是一个浏览器扩展，旨在帮助用户在 PTA 编程平�
 
 ### 对于普通用户
 
-- **直接安装**：下载 [Relese 页面](https://gitee.com/lmx12330/fuckpta/release) 下载最新版本的扩展包，然后在浏览器扩展管理页面加载已解压的扩展。
+- **直接安装**：下载 [Relese 页面](https://gitee.com/lmx12330/fuckpta/releases/latest) 下载最新版本的扩展包，然后在浏览器扩展管理页面加载已解压的扩展。
 
 ### 对于开发者
 
