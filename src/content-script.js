@@ -434,7 +434,8 @@ function isProgrammingDetailPage() {
 // 检查是否是编程题/函数题列表页（/type/7 或 /type/6 不含 problemSetProblemId）
 function isProgrammingListPage() {
   const url = window.location.href;
-  return /\/problem-sets\/.+\/exam\/problems\/type\/[67]$/.test(url);
+  return /\/problem-sets\/.+\/exam\/problems\/type\/[67](?:\?.*)?$/.test(url) &&
+         !/problemSetProblemId=\d+/.test(url);
 }
 
 // 获取当前题目的类型：PROGRAMMING 或 CODE_COMPLETION
@@ -507,10 +508,35 @@ async function fetchProblemList() {
       return;
     }
 
-    // 获取题目列表
+    // 获取题目状态
+    let statusMap = {};
+    try {
+      const statusResponse = await fetch(
+        `https://pintia.cn/api/exams/${examId}/problem-sets/${problemSetId}/problem-status`,
+        {
+          headers: {
+            accept: 'application/json;charset=UTF-8',
+            'content-type': 'application/json;charset=UTF-8',
+            'x-lollipop': getLollipop(),
+            'x-marshmallow': ''
+          },
+          method: 'GET',
+          credentials: 'include'
+        }
+      );
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        (statusData.problemStatus || []).forEach(s => {
+          statusMap[s.id] = s.problemSubmissionStatus;
+        });
+      }
+    } catch (e) { /* 静默失败 */ }
+
+    // 获取题目列表（自动翻页）
     const problemType = getProblemType();
-    const listResponse = await fetch(
-      `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=${problemType}&page=0&limit=100`,
+    const PAGE_SIZE = 200;
+    const firstResponse = await fetch(
+      `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=${problemType}&page=0&limit=${PAGE_SIZE}`,
       {
         headers: {
           accept: 'application/json;charset=UTF-8',
@@ -523,35 +549,79 @@ async function fetchProblemList() {
       }
     );
 
-    if (!listResponse.ok) {
-      showToast(`获取题目列表失败: ${listResponse.status}`, 'error');
+    if (!firstResponse.ok) {
+      showToast(`获取题目列表失败: ${firstResponse.status}`, 'error');
       problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">获取题目列表失败</span></div>';
       return;
     }
 
-    const problemListData = await listResponse.json();
+    const firstData = await firstResponse.json();
+    let allProblems = firstData.problemSetProblems || [];
+    let allLabels = firstData.examLabelByProblemSetProblemId || {};
+    const total = firstData.total || allProblems.length;
+
+    // 翻页获取剩余题目
+    if (total > PAGE_SIZE) {
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      const pagePromises = [];
+      for (let p = 1; p < totalPages; p++) {
+        pagePromises.push(fetch(
+          `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=${problemType}&page=${p}&limit=${PAGE_SIZE}`,
+          {
+            headers: {
+              accept: 'application/json;charset=UTF-8',
+              'content-type': 'application/json;charset=UTF-8',
+              'x-lollipop': getLollipop(),
+              'x-marshmallow': ''
+            },
+            method: 'GET',
+            credentials: 'include'
+          }
+        ).then(r => r.ok ? r.json() : null));
+      }
+      const extraPages = await Promise.all(pagePromises);
+      extraPages.forEach(data => {
+        if (data) {
+          if (data.problemSetProblems) allProblems = allProblems.concat(data.problemSetProblems);
+          if (data.examLabelByProblemSetProblemId) Object.assign(allLabels, data.examLabelByProblemSetProblemId);
+        }
+      });
+    }
 
     // 获取题目序号映射
-    const examLabelMap = problemListData.examLabelByProblemSetProblemId || {};
+    const examLabelMap = allLabels;
 
     // 提取题目ID和名字并输出到console，同时渲染到浮动窗口
-    if (problemListData.problemSetProblems) {
-      //console.log('=== 题目列表 ===');
+    if (allProblems.length > 0) {
+      const statusText = {
+        'PROBLEM_ACCEPTED': '已通过',
+        'PROBLEM_NO_ANSWER': '未尝试'
+      };
+
+      let acceptedCount = 0;
       let html = '';
-      problemListData.problemSetProblems.forEach((problem, index) => {
+      allProblems.forEach((problem, index) => {
         const label = examLabelMap[problem.id] || `${index + 1}`;
-       // console.log(`题目${label}: ID=${problem.id}, 名称=${problem.title}`);
+        const ps = statusMap[problem.id] || '';
+        let badge = '';
+        if (ps === 'PROBLEM_ACCEPTED') {
+          badge = `<span class="problem-status" style="background:#e8f5e9;color:#32F08C;font-size:11px;padding:2px 8px;border-radius:4px;margin-left:8px;">${statusText[ps]}</span>`;
+          acceptedCount++;
+        } else if (ps === 'PROBLEM_NO_ANSWER') {
+          badge = `<span class="problem-status" style="background:#f5f5f5;color:#999;font-size:11px;padding:2px 8px;border-radius:4px;margin-left:8px;">${statusText[ps]}</span>`;
+        } else if (ps) {
+          badge = `<span class="problem-status" style="background:#ffebee;color:#f44336;font-size:11px;padding:2px 8px;border-radius:4px;margin-left:8px;">未通过</span>`;
+        }
         html += `<div class="problem-item" data-id="${problem.id}">
           <span class="problem-index">${label}</span>
-          <span class="problem-title">${problem.title}</span>
+          <span class="problem-title">${problem.title}</span>${badge}
           <button class="problem-action-btn">一键完成</button>
         </div>`;
       });
-      //console.log(`共 ${problemListData.problemSetProblems.length} 道题目`);
 
       problemListContainer.innerHTML = html;
       if (statusDiv) {
-        statusDiv.textContent = `共 ${problemListData.problemSetProblems.length} 道题目`;
+        statusDiv.textContent = `共 ${allProblems.length} 题` + (acceptedCount > 0 ? `，已通过 ${acceptedCount}` : '');
         statusDiv.className = 'success';
       }
 
@@ -721,7 +791,7 @@ async function fetchProblemList() {
               completeAllStatus.textContent = '正在处理题目...';
 
               try {
-                const problems = problemListData.problemSetProblems;
+                const problems = allProblems;
 
                 const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
                   headers: {
@@ -948,6 +1018,9 @@ async function fetchProblemList() {
           return;
         });
       }
+
+      // 应用筛选状态
+      applyProblemFilter();
     }
   } catch (error) {
     showToast(`获取题目列表出错: ${error.message}`, 'error');
@@ -1197,18 +1270,43 @@ async function checkAndUseAI(problemText, isRetry = false, errorNote = '', attem
       const codeHighlight = document.getElementById('pta-code-highlight');
       
       await streamAIResponse(apiUrl, apiKey, model, messages, 
-        (chunk) => {
-          aiResponse += chunk;
-          // 实时更新代码
-          if (codeInput && codeHighlight) {
-            // 移除代码块标记
+        (() => {
+          const grammar = Prism.languages.c;
+          let lastRender = 0;
+          let pending = false;
+          return (chunk) => {
+            aiResponse += chunk;
+            if (!codeInput || !codeHighlight) return;
             const cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
             codeInput.value = cleanCode;
-            codeHighlight.innerHTML = escapeHtml(cleanCode);
-            Prism.highlightElement(codeHighlight);
-          }
-        },
+            const now = Date.now();
+            const interval = cleanCode.length > 5000 ? 500 : 300;
+            if (now - lastRender >= interval) {
+              codeHighlight.innerHTML = Prism.highlight(cleanCode, grammar, 'c');
+              codeHighlight.classList.add('line-numbers');
+              lastRender = now;
+              pending = false;
+            } else if (!pending) {
+              pending = true;
+              const delay = interval - (now - lastRender);
+              setTimeout(() => {
+                if (!codeHighlight || !document.contains(codeHighlight)) return;
+                const c = aiResponse.replace(/```[\w]*\n?/g, '').trim();
+                codeHighlight.innerHTML = Prism.highlight(c, grammar, 'c');
+                codeHighlight.classList.add('line-numbers');
+                lastRender = Date.now();
+                pending = false;
+              }, delay);
+            }
+          };
+        })(),
         () => {
+          // flush
+          if (codeHighlight) {
+            const cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
+            codeHighlight.innerHTML = Prism.highlight(cleanCode, Prism.languages.c, 'c');
+            codeHighlight.classList.add('line-numbers');
+          }
           // 完成时的处理
           debugLog('AI 返回的内容', aiResponse);
           // 保存对话历史
@@ -2206,10 +2304,10 @@ function fillCodeToFloatWindow(code) {
     // 移除代码块标记
     const cleanCode = code.replace(/```[\w]*\n?/g, '').trim();
     codeInput.value = cleanCode;
-    // 使用innerHTML并转义HTML特殊字符
-    codeHighlight.innerHTML = escapeHtml(cleanCode);
-    // 应用高亮
-    Prism.highlightElement(codeHighlight);
+    const grammar = Prism.languages.c;
+    const html = Prism.highlight(cleanCode, grammar, 'c');
+    codeHighlight.innerHTML = html;
+    codeHighlight.classList.add('line-numbers');
     //console.log('已将 AI 代码填充到输入框');
   }
 }
@@ -2860,6 +2958,11 @@ function createProblemListHTML() {
     <div class="pta-float-body">
       <div class="pta-buttons">
         <button id="pta-complete-all-btn" class="btn-complete-all">一键完成所有题目</button>
+        <label id="pta-filter-toggle" style="display:flex;align-items:center;gap:6px;font-size:13px;color:#666;cursor:pointer;margin-left:8px;">
+          <input type="checkbox" id="pta-filter-checkbox" style="display:none;">
+          <span id="pta-filter-slider" style="width:36px;height:20px;background:#e5e5e5;border-radius:10px;position:relative;transition:background 0.2s;flex-shrink:0;"></span>
+          <span style="white-space:nowrap;">未完成</span>
+        </label>
       </div>
       <div id="pta-problem-list" class="problem-list">
         <div class="problem-item">
@@ -2875,30 +2978,63 @@ function createProblemListHTML() {
 
 // 初始化题目列表事件
 function initProblemListEvents(floatWindow) {
-  // 题目列表点击事件会在fetchProblemList中绑定
+  const checkbox = floatWindow.querySelector('#pta-filter-checkbox');
+  const slider = floatWindow.querySelector('#pta-filter-slider');
+
+  function updateSlider() {
+    if (checkbox.checked) {
+      slider.style.background = '#32F08C';
+      slider.innerHTML = '<span style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s;"></span>';
+    } else {
+      slider.style.background = '#e5e5e5';
+      slider.innerHTML = '<span style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s;"></span>';
+    }
+  }
+  updateSlider();
+
+  checkbox.addEventListener('change', () => {
+    updateSlider();
+    applyProblemFilter();
+  });
+}
+
+function applyProblemFilter() {
+  const checkbox = document.getElementById('pta-filter-checkbox');
+  if (!checkbox) return;
+  const onlyIncomplete = checkbox.checked;
+  const items = document.querySelectorAll('#pta-problem-list .problem-item');
+  let visibleCount = 0;
+  items.forEach(item => {
+    const badge = item.querySelector('.problem-status');
+    const isAccepted = badge && badge.textContent === '已通过';
+    if (onlyIncomplete && isAccepted) {
+      item.style.display = 'none';
+    } else {
+      item.style.display = '';
+      visibleCount++;
+    }
+  });
+  const statusDiv = document.getElementById('pta-problem-list-status');
+  if (statusDiv && visibleCount > 0 && onlyIncomplete) {
+    statusDiv.textContent = statusDiv.textContent.replace(/，显示 \d+ 题/, '') + `，显示 ${visibleCount} 题`;
+  } else if (statusDiv) {
+    statusDiv.textContent = statusDiv.textContent.replace(/，显示 \d+ 题/, '');
+  }
 }
 
 // 初始化代码编辑器事件
 function initCodeEditorEvents(floatWindow) {
   const codeInput = floatWindow.querySelector('#pta-code-input');
   const codeHighlight = floatWindow.querySelector('#pta-code-highlight');
-  
-  // 高亮节流控制
-  let inputHighlightTimeout = null;
-  const INPUT_HIGHLIGHT_DELAY = 300; // 输入高亮延迟（毫秒）
 
-  // 同步输入和高亮（带节流）
-  codeInput.addEventListener('input', function() {
-    codeHighlight.innerHTML = escapeHtml(codeInput.value);
-    
-    // 使用节流限制高亮频率
-    if (inputHighlightTimeout) {
-      clearTimeout(inputHighlightTimeout);
-    }
-    inputHighlightTimeout = setTimeout(() => {
-      Prism.highlightElement(codeHighlight);
-    }, INPUT_HIGHLIGHT_DELAY);
-  });
+  function doHighlight() {
+    const grammar = Prism.languages.c;
+    const html = Prism.highlight(codeInput.value, grammar, 'c');
+    codeHighlight.innerHTML = html;
+    codeHighlight.classList.add('line-numbers');
+  }
+
+  codeInput.addEventListener('input', doHighlight);
 
   // 同步滚动
   codeInput.addEventListener('scroll', function() {
@@ -3395,7 +3531,7 @@ async function checkGlobalVersion() {
     const result = await new Promise(resolve => {
       chrome.storage.local.get(['ignoredVersion'], resolve);
     });
-    const ignoredVersion = result.ignoredVersion || '0.0.0';
+    const ignoredVersion = String(result.ignoredVersion || '0.0.0').trim();
 
     let verData = null;
 
@@ -3415,10 +3551,11 @@ async function checkGlobalVersion() {
 
     if (!verData || !verData.version) return;
 
-    const latestVersion = verData.version;
-    const currentVersion = chrome.runtime.getManifest().version;
+    const latestVersion = String(verData.version).trim();
+    const currentVersion = typeof __PLUGIN_VERSION__ !== 'undefined' ? __PLUGIN_VERSION__ : '0.0.0';
 
     // 当前版本已经是最新，不需要弹窗
+    if (currentVersion === latestVersion) return;
     if (compareVersionStr(currentVersion, latestVersion) >= 0) return;
     // 用户已忽略此版本（或更高版本）
     if (compareVersionStr(ignoredVersion, latestVersion) >= 0) return;
@@ -3933,51 +4070,46 @@ function createSubmissionResultWindow() {
         // 流式输出
         let aiResponse = '';
         aiResultSection.style.display = 'block';
-        
-        // 高亮节流控制
-        let highlightTimeout = null;
-        let lastHighlightTime = 0;
-        const MIN_HIGHLIGHT_INTERVAL = 500; // 最小高亮间隔（毫秒）
-        const LARGE_TEXT_THRESHOLD = 5000; // 大文本阈值（字符数）
-        const LARGE_TEXT_INTERVAL = 2000; // 大文本时的高亮间隔
-        
+
         await streamAIResponse(apiConfig.url, apiConfig.key, apiConfig.model, messages, 
-          (chunk) => {
-            aiResponse += chunk;
-            // 实时更新代码
-            // 移除代码块标记
-            const cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
-            aiCodeInput.value = cleanCode;
-            aiCodeHighlight.innerHTML = escapeHtml(cleanCode);
-            
-            // 限制高亮频率
-            const now = Date.now();
-            const textLength = cleanCode.length;
-            const interval = textLength > LARGE_TEXT_THRESHOLD ? LARGE_TEXT_INTERVAL : MIN_HIGHLIGHT_INTERVAL;
-            
-            if (now - lastHighlightTime >= interval) {
-              // 立即执行一次高亮
-              Prism.highlightElement(aiCodeHighlight);
-              lastHighlightTime = now;
-            } else {
-              // 延迟执行高亮，如果有新的内容进来会取消之前的延迟
-              if (highlightTimeout) {
-                clearTimeout(highlightTimeout);
+          (() => {
+            const grammar = Prism.languages.c;
+            let lastRender = 0;
+            let pending = false;
+            return (chunk) => {
+              aiResponse += chunk;
+              if (!aiCodeInput || !aiCodeHighlight) return;
+              const cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
+              aiCodeInput.value = cleanCode;
+              const now = Date.now();
+              const interval = cleanCode.length > 5000 ? 500 : 300;
+              if (now - lastRender >= interval) {
+                aiCodeHighlight.innerHTML = Prism.highlight(cleanCode, grammar, 'c');
+                aiCodeHighlight.classList.add('line-numbers');
+                lastRender = now;
+                pending = false;
+              } else if (!pending) {
+                pending = true;
+                const delay = interval - (now - lastRender);
+                setTimeout(() => {
+                  if (!aiCodeHighlight || !document.contains(aiCodeHighlight)) return;
+                  const c = aiResponse.replace(/```[\w]*\n?/g, '').trim();
+                  aiCodeHighlight.innerHTML = Prism.highlight(c, grammar, 'c');
+                  aiCodeHighlight.classList.add('line-numbers');
+                  lastRender = Date.now();
+                  pending = false;
+                }, delay);
               }
-              highlightTimeout = setTimeout(() => {
-                Prism.highlightElement(aiCodeHighlight);
-                lastHighlightTime = Date.now();
-              }, interval);
-            }
-          },
+            };
+          })(),
           () => {
-            // 完成时的处理
-            // 确保最后一次高亮被执行
-            if (highlightTimeout) {
-              clearTimeout(highlightTimeout);
+            // flush
+            if (aiCodeHighlight) {
+              const cleanCode = aiResponse.replace(/```[\w]*\n?/g, '').trim();
+              aiCodeHighlight.innerHTML = Prism.highlight(cleanCode, Prism.languages.c, 'c');
+              aiCodeHighlight.classList.add('line-numbers');
             }
-            Prism.highlightElement(aiCodeHighlight);
-            
+            // 完成时的处理
             debugLog('AI 返回的内容（纠错功能）', aiResponse);
             statusDiv.textContent = '答案获取成功！';
             statusDiv.className = 'success';
