@@ -1,0 +1,182 @@
+
+
+
+
+fetch("https://pintia.cn/api/exams/2029053726446436352/exam-submissions", {
+  "headers": {
+    "accept": "application/json;charset=UTF-8",
+    "accept-language": "zh-CN",
+    "content-type": "application/json;charset=UTF-8",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Chromium\";v=\"148\", \"Microsoft Edge\";v=\"148\", \"Not/A)Brand\";v=\"99\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-lollipop": "e39b71b51ecfa99ea203da04d85ed979",
+    "x-marshmallow": "",
+    "cookie": "_ga=GA1.1.1772940875.1758463555; PTASession=2e2bd8ce-8cc0-48d0-864b-3c98726bca2b; _bl_uid=yhm9knpb7FLjm9q7e7FOohpi5qdk; _ga_ZHCNP8KECW=GS2.1.s1778564535$o54$g1$t1778568839$j47$l0$h0; JSESSIONID=5B0A65351AC0DA9117E4C002AD9289D0",
+    "Referer": "https://pintia.cn/problem-sets/14/exam/problems/type/6?problemSetProblemId=733"
+  },
+  "body": "{\"problemType\":\"CODE_COMPLETION\",\"details\":[{\"problemId\":\"0\",\"problemSetProblemId\":\"733\",\"codeCompletionSubmissionDetail\":{\"program\":\"void PrintN ( int N)\\n{\\n    for(int i = 1 ; i<= N; i++ )\\n    {\\n        printf(\\\"%d\\\\n\\\",i );\\n    }\\n}\"}}]}",
+  "method": "POST"
+});
+
+{
+    "problemType": "CODE_COMPLETION",
+    "details": [
+        {
+            "problemId": "0",
+            "problemSetProblemId": "733",
+            "codeCompletionSubmissionDetail": {
+                "program": "void PrintN ( int N)\n{\n    for(int i = 1 ; i<= N; i++ )\n    {\n        printf(\"%d\\n\",i );\n    }\n}"
+            }
+        }
+    ]
+}
+
+
+fetch("https://pintia.cn/api/exams/2029053726446436352/submissions/2054093291964862464?", {
+  "headers": {
+    "accept": "application/json;charset=UTF-8",
+    "accept-language": "zh-CN",
+    "content-type": "application/json;charset=UTF-8",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Chromium\";v=\"148\", \"Microsoft Edge\";v=\"148\", \"Not/A)Brand\";v=\"99\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-lollipop": "e39b71b51ecfa99ea203da04d85ed979",
+    "x-marshmallow": "",
+    "cookie": "_ga=GA1.1.1772940875.1758463555; PTASession=2e2bd8ce-8cc0-48d0-864b-3c98726bca2b; _bl_uid=yhm9knpb7FLjm9q7e7FOohpi5qdk; _ga_ZHCNP8KECW=GS2.1.s1778564535$o54$g1$t1778568839$j47$l0$h0; JSESSIONID=C6661FEE1CC49A5CD36B5D63166EEF7A",
+    "Referer": "https://pintia.cn/problem-sets/14/exam/problems/type/6?problemSetProblemId=733"
+  },
+  "body": null,
+  "method": "GET"
+});
+
+{
+    "publicCases": {
+        "0": false,
+        "1": false,
+        "2": false
+    },
+    "submission": {
+        "id": "2054093291964862464",
+        "userId": "1998560736387239936",
+        "problemType": "CODE_COMPLETION",
+        "problemSetProblemId": "733",
+        "submitAt": "2026-05-12T06:56:18Z",
+        "status": "ACCEPTED",
+        "score": 10.0,
+        "compiler": "GCC",
+        "time": 0.033,
+        "memory": 3805184,
+        "submissionDetails": [
+            {
+                "problemSetProblemId": "733",
+                "codeCompletionSubmissionDetail": {
+                    "program": "void PrintN ( int N)\n{\n    for(int i \u003d 1 ; i\u003c\u003d N; i++ )\n    {\n        printf(\"%d\\n\",i );\n    }\n}"
+                },
+                "problemId": "0"
+            }
+        ],
+        "judgeResponseContents": [
+            {
+                "status": "ACCEPTED",
+                "score": 10.0,
+                "codeCompletionJudgeResponseContent": {
+                    "compilationResult": {
+                        "log": "a.c: In function ‘main’:\na.c:8:9: warning: ignoring return value of ‘scanf’ declared with attribute ‘warn_unused_result’ [-Wunused-result]\n    8 |         scanf(\"%d\", \u0026N);\n      |         ^~~~~~~~~~~~~~~",
+                        "success": true,
+                        "error": ""
+                    },
+                    "checkerCompilationResult": {
+                        "log": "",
+                        "success": false,
+                        "error": ""
+                    },
+                    "testcaseJudgeResults": {
+                        "0": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 524288,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 5,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "1": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 532480,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 2,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "2": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.033,
+                            "memory": 3805184,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 3,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        }
+                    }
+                },
+                "problemSetProblemId": "733"
+            }
+        ],
+        "hints": {
+            "0": "sample 一般测试",
+            "1": "最小N",
+            "2": "大N，卡递归"
+        },
+        "problemSetId": "14",
+        "previewSubmission": false,
+        "cause": "",
+        "judgeAt": "2026-05-12T06:56:19Z"
+    },
+    "queued": -1,
+    "examMember": {
+        "userGroupId": "0",
+        "examId": "0",
+        "userId": "1998560736387239936",
+        "studentUserId": "0"
+    },
+    "user": {
+        "id": "1998560736387239936",
+        "nickname": "用户1709"
+    },
+    "studentUser": {
+        "studentNumber": "",
+        "name": "",
+        "id": "0"
+    }
+}

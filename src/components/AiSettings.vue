@@ -128,11 +128,21 @@ function loadConfig() {
   });
 }
 
-// 自动保存配置
+// 自动保存配置（仅保存本组件管理的 key，避免覆盖其他组件的配置）
+const AI_KEYS = ['aiEnabled', 'modelSelectMode', 'selectedModelId', 'aiSystemPrompt', 'aiErrorPrompt', 'choiceBatchSize', 'choicePrompt'];
+
 function autoSaveConfig() {
-  // 将响应式对象转换为普通对象再保存
-  const configToSave = JSON.parse(JSON.stringify(config.value));
-  chrome.storage.local.set(configToSave);
+  const raw = JSON.parse(JSON.stringify(config.value));
+  const toSave = {};
+  AI_KEYS.forEach(k => { toSave[k] = raw[k]; });
+  chrome.storage.local.set(toSave);
+}
+
+// 带防抖的 textarea 保存
+let textareaTimer = null;
+function debouncedSave() {
+  if (textareaTimer) clearTimeout(textareaTimer);
+  textareaTimer = setTimeout(autoSaveConfig, 500);
 }
 
 // 页面加载完成后初始化
@@ -205,7 +215,7 @@ loadConfig();
             <div class="setting-name">系统提示词</div>
             <div class="setting-desc">AI 的系统提示词</div>
           </div>
-          <textarea v-model="config.aiSystemPrompt" class="input-textarea" placeholder="你是一个编程助手..." @blur="autoSaveConfig"></textarea>
+          <textarea v-model="config.aiSystemPrompt" class="input-textarea" placeholder="你是一个编程助手..." @input="debouncedSave" @blur="autoSaveConfig"></textarea>
         </div>
         
         <div class="setting-item vertical">
@@ -213,7 +223,7 @@ loadConfig();
             <div class="setting-name">纠错提示词</div>
             <div class="setting-desc">AI 纠错时的提示词</div>
           </div>
-          <textarea v-model="config.aiErrorPrompt" class="input-textarea" placeholder="你是一个编程助手..." @blur="autoSaveConfig"></textarea>
+          <textarea v-model="config.aiErrorPrompt" class="input-textarea" placeholder="你是一个编程助手..." @input="debouncedSave" @blur="autoSaveConfig"></textarea>
         </div>
       </div>
     </div>
@@ -234,7 +244,7 @@ loadConfig();
             <div class="setting-name">选择题提示词</div>
             <div class="setting-desc">AI 做选择题时的提示词，使用 {problem content} 作为占位符</div>
           </div>
-          <textarea v-model="config.choicePrompt" class="input-textarea" placeholder="你是一个专业的AI做题工具..." @blur="autoSaveConfig"></textarea>
+          <textarea v-model="config.choicePrompt" class="input-textarea" placeholder="你是一个专业的AI做题工具..." @input="debouncedSave" @blur="autoSaveConfig"></textarea>
         </div>
       </div>
     </div>

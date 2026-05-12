@@ -424,17 +424,25 @@ function extractSubmissionResultWithDelay() {
   }, 10);
 }
 
-// 检查是否是编程题详情页（/type/7?problemSetProblemId=xxx）
+// 检查是否是编程题/函数题详情页（/type/7 或 /type/6 含 problemSetProblemId）
 function isProgrammingDetailPage() {
   const url = window.location.href;
-  return /\/problem-sets\/.+\/exam\/problems\/type\/7/.test(url) && 
+  return /\/problem-sets\/.+\/exam\/problems\/type\/[67]/.test(url) && 
          /problemSetProblemId=\d+/.test(url);
 }
 
-// 检查是否是编程题列表页（/type/7 不含 problemSetProblemId）
+// 检查是否是编程题/函数题列表页（/type/7 或 /type/6 不含 problemSetProblemId）
 function isProgrammingListPage() {
   const url = window.location.href;
-  return /\/problem-sets\/.+\/exam\/problems\/type\/7$/.test(url);
+  return /\/problem-sets\/.+\/exam\/problems\/type\/[67]$/.test(url);
+}
+
+// 获取当前题目的类型：PROGRAMMING 或 CODE_COMPLETION
+function getProblemType() {
+  const url = window.location.href;
+  if (/\/type\/7/.test(url)) return 'PROGRAMMING';
+  if (/\/type\/6/.test(url)) return 'CODE_COMPLETION';
+  return 'PROGRAMMING';
 }
 
 // 检查是否是选择题页面（/type/2）
@@ -500,8 +508,9 @@ async function fetchProblemList() {
     }
 
     // 获取题目列表
+    const problemType = getProblemType();
     const listResponse = await fetch(
-      `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=PROGRAMMING&page=0&limit=100`,
+      `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=${problemType}&page=0&limit=100`,
       {
         headers: {
           accept: 'application/json;charset=UTF-8',
@@ -558,7 +567,8 @@ async function fetchProblemList() {
           const problemTitle = this.querySelector('.problem-title').textContent;
           //console.log(`点击了题目: ${problemTitle}, ID: ${problemId}`);
           // 跳转到题目页面
-          window.open(`https://pintia.cn/problem-sets/${problemSetId}/exam/problems/type/7?problemSetProblemId=${problemId}`, '_blank');
+          const typeParam = getProblemType() === 'CODE_COMPLETION' ? '6' : '7';
+          window.open(`https://pintia.cn/problem-sets/${problemSetId}/exam/problems/type/${typeParam}?problemSetProblemId=${problemId}`, '_blank');
         });
 
         // 一键完成按钮点击事件
@@ -567,13 +577,14 @@ async function fetchProblemList() {
           actionBtn.addEventListener('click', async function() {
             const problemId = item.getAttribute('data-id');
             const problemTitle = item.querySelector('.problem-title').textContent;
-            //console.log(`一键完成题目: ${problemTitle}, ID: ${problemId}`);
 
-            // 禁用按钮，显示加载状态
             actionBtn.disabled = true;
-            actionBtn.textContent = '处理中...';
 
             try {
+              // 读题
+              actionBtn.textContent = '读题';
+              actionBtn.style.background = '#2196F3';
+
               // 步骤1: 获取examId
               const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
                 headers: {
@@ -622,12 +633,15 @@ async function fetchProblemList() {
                 throw new Error('未提取到题目内容');
               }
 
+              // AI生成
+              actionBtn.textContent = 'AI生成';
+              actionBtn.style.background = '#ff9800';
+
               // 步骤3: 调用AI生成代码
               const config = await new Promise(resolve => {
                 getConfig(resolve);
               });
 
-              // 获取活动的 API 配置
               const apiConfig = getActiveApiConfig(config);
               
               if (!config.aiEnabled || !apiConfig) {
@@ -640,71 +654,40 @@ async function fetchProblemList() {
               let systemPrompt = config.aiSystemPrompt;
               const language = config.language;
 
-              // 替换占位符
               systemPrompt = systemPrompt
                 .replace('{language}', language)
                 .replace('{problem content}', problemContent);
 
-              // 构建消息
               let messages = [
-                {
-                  role: 'system',
-                  content: systemPrompt
-                },
-                {
-                  role: 'user',
-                  content: ''
-                }
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '' }
               ];
 
-              // 使用Cherry AI Core进行调用
               let aiCode = await generateAIResponse(apiUrl, apiKey, model, messages);
               
               if (!aiCode) {
                 throw new Error('AI 未返回有效结果');
               }
               
-              // 移除代码块标记
               aiCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
 
-              // 步骤4: 提交代码
-              const submitUrl = `https://pintia.cn/api/exams/${examId}/exam-submissions`;
-              const submitBody = {
-                problemType: 'PROGRAMMING',
-                details: [{
-                  problemId: '0',
-                  problemSetProblemId: problemId,
-                  programmingSubmissionDetail: {
-                    program: aiCode,
-                    compiler: 'GCC'
-                  }
-                }]
-              };
+              const result = await submitCode(aiCode, problemSetId, problemId);
 
-              const submitResponse = await fetch(submitUrl, {
-                headers: {
-                  'accept': 'application/json;charset=UTF-8',
-                  'content-type': 'application/json;charset=UTF-8',
-                  'x-lollipop': getLollipop(),
-                  'x-marshmallow': ''
-                },
-                body: JSON.stringify(submitBody),
-                method: 'POST',
-                credentials: 'include'
-              });
-
-              if (!submitResponse.ok) {
-                const errorData = await submitResponse.json();
-                throw new Error('提交失败: ' + (errorData.message || '未知错误'));
+              if (!result.success) {
+                throw new Error('提交失败: ' + result.error);
               }
 
-              actionBtn.textContent = '完成';
-              actionBtn.style.background = '#2196F3';
-              actionBtn.disabled = false;
+              if (result.examId && result.submissionId) {
+                pollForButtonResult(actionBtn, result.examId, result.submissionId);
+              } else {
+                actionBtn.textContent = '完成';
+                actionBtn.style.background = '#2196F3';
+                actionBtn.disabled = false;
+              }
             } catch (error) {
                 showToast(`一键完成出现错误: ${error.message}`, 'error');
                 if (actionBtn && actionBtn.parentNode) {
-                  actionBtn.textContent = '错误';
+                  actionBtn.textContent = '失败';
                   actionBtn.style.background = '#f44336';
                   setTimeout(() => {
                     if (actionBtn && actionBtn.parentNode) {
@@ -739,10 +722,7 @@ async function fetchProblemList() {
 
               try {
                 const problems = problemListData.problemSetProblems;
-                let successCount = 0;
-                let failureCount = 0;
 
-                // 步骤1: 获取examId
                 const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
                   headers: {
                     accept: 'application/json;charset=UTF-8',
@@ -776,10 +756,38 @@ async function fetchProblemList() {
                   throw new Error('AI 未启用或未配置 API 密钥');
                 }
 
-                // 分批处理所有题目，每隔半秒启动一个新任务
-                completeAllStatus.textContent = `正在处理 ${problems.length} 道题目...`;
+                // 初始化批次统计
+                const batchStats = { AC: 0, WA: 0, PA: 0, CE: 0, SF: 0, ERROR: 0, PENDING: problems.length, SUBMITTED: 0, TIMEOUT: 0 };
+                function updateBatchStatus(statusEl, status) {
+                  if (status === 'SUBMITTED' || status === 'TIMEOUT') {
+                    batchStats[status] = (batchStats[status] || 0) + 1;
+                  } else {
+                    const mapped = status === 'ACCEPTED' ? 'AC' : 
+                                   status === 'PARTIAL_ACCEPTED' ? 'PA' :
+                                   status === 'WRONG_ANSWER' ? 'WA' :
+                                   status === 'COMPILE_ERROR' ? 'CE' :
+                                   status === 'SEGMENTATION_FAULT' ? 'SF' :
+                                   status === 'ERROR' ? 'ERROR' : status;
+                    batchStats[mapped] = (batchStats[mapped] || 0) + 1;
+                  }
+                  batchStats.PENDING = Math.max(0, batchStats.PENDING - 1);
+
+                  const parts = [];
+                  if (batchStats.AC > 0) parts.push(`✅${batchStats.AC}`);
+                  if (batchStats.WA > 0) parts.push(`❌${batchStats.WA}`);
+                  if (batchStats.PA > 0) parts.push(`⚠️${batchStats.PA}`);
+                  if (batchStats.CE > 0) parts.push(`🔧${batchStats.CE}`);
+                  if (batchStats.SF > 0) parts.push(`💥${batchStats.SF}`);
+                  if (batchStats.ERROR > 0) parts.push(`🚫${batchStats.ERROR}`);
+                  if (batchStats.TIMEOUT > 0) parts.push(`⏰${batchStats.TIMEOUT}`);
+                  if (batchStats.PENDING > 0) parts.push(`⏳${batchStats.PENDING}`);
+
+                  if (batchStats.PENDING === 0) {
+                    statusEl.className = 'success';
+                  }
+                  statusEl.textContent = parts.join(' ') || '处理完成';
+                }
                 
-                const results = [];
                 const processingPromises = [];
                 
                 // 处理单个题目的函数
@@ -787,8 +795,19 @@ async function fetchProblemList() {
                   const problemId = problem.id;
                   const problemTitle = problem.title;
                   
+                  // 提前获取按钮引用
+                  const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
+                  const actionBtn = problemItem ? problemItem.querySelector('.problem-action-btn') : null;
+                  
                   try {
                     //console.log(`处理题目 ${index + 1}/${problems.length}: ${problemTitle}, ID: ${problemId}`);
+
+                    // 更新按钮：读题
+                    if (actionBtn) {
+                      actionBtn.textContent = '读题';
+                      actionBtn.style.background = '#2196F3';
+                      actionBtn.disabled = true;
+                    }
 
                     // 步骤3: 获取题目内容
                     const problemResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
@@ -814,6 +833,12 @@ async function fetchProblemList() {
 
                     if (!problemContent) {
                       throw new Error('未提取到题目内容');
+                    }
+
+                    // 更新按钮：AI生成
+                    if (actionBtn) {
+                      actionBtn.textContent = 'AI生成';
+                      actionBtn.style.background = '#ff9800';
                     }
 
                     // 步骤4: 调用AI生成代码
@@ -850,42 +875,42 @@ async function fetchProblemList() {
                     // 移除代码块标记
                     aiCode = aiCode.replace(/```[\w]*\n?/g, '').trim();
 
-                    // 步骤5: 提交代码（使用带重试机制的submitCode函数）
+                    // 提交代码
                     const submitResult = await submitCode(aiCode, problemSetId, problemId);
                     
                     if (!submitResult.success) {
                       throw new Error('提交失败: ' + submitResult.error);
                     }
 
-                    // 更新对应题目的按钮状态
-                    const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
-                    if (problemItem) {
-                      const actionBtn = problemItem.querySelector('.problem-action-btn');
-                      if (actionBtn) {
+                    // 更新对应题目的按钮状态：等待结果
+                    let finalStatus = 'SUBMITTED';
+                    if (actionBtn) {
+                      if (submitResult.examId && submitResult.submissionId) {
+                        finalStatus = await pollForButtonResult(actionBtn, submitResult.examId, submitResult.submissionId);
+                      } else {
                         actionBtn.textContent = '完成';
                         actionBtn.style.background = '#2196F3';
                         actionBtn.disabled = false;
                       }
                     }
 
-                    return true;
+                    // 更新汇总状态
+                    updateBatchStatus(completeAllStatus, finalStatus);
+
+                    return finalStatus;
                   } catch (error) {
                     showToast(`处理题目 ${problemTitle} 失败: ${error.message}`, 'error');
-                    // 更新对应题目的按钮状态
-                    const problemItem = problemListContainer.querySelector(`.problem-item[data-id="${problemId}"]`);
-                    if (problemItem) {
-                      const actionBtn = problemItem.querySelector('.problem-action-btn');
-                      if (actionBtn) {
-                        actionBtn.textContent = '失败';
-                        actionBtn.style.background = '#f44336';
-                        setTimeout(() => {
-                          actionBtn.textContent = '一键完成';
-                          actionBtn.style.background = '#4CAF50';
-                          actionBtn.disabled = false;
-                        }, 2000);
-                      }
+                    if (actionBtn) {
+                      actionBtn.textContent = '失败';
+                      actionBtn.style.background = '#f44336';
+                      setTimeout(() => {
+                        actionBtn.textContent = '一键完成';
+                        actionBtn.style.background = '#4CAF50';
+                        actionBtn.disabled = false;
+                      }, 2000);
                     }
-                    return false;
+                    updateBatchStatus(completeAllStatus, 'ERROR');
+                    return 'ERROR';
                   }
                 };
 
@@ -904,13 +929,8 @@ async function fetchProblemList() {
                 }
 
                 // 等待所有任务完成
-                const taskResults = await Promise.all(processingPromises);
-                successCount = taskResults.filter(result => result).length;
-                failureCount = taskResults.filter(result => !result).length;
+                await Promise.all(processingPromises);
 
-                // 完成所有题目后显示结果
-                completeAllStatus.className = 'success';
-                completeAllStatus.textContent = `处理完成！成功: ${successCount}, 失败: ${failureCount}`;
                 completeAllBtn.textContent = '完成所有题目';
                 completeAllBtn.disabled = false;
               } catch (error) {
@@ -1017,6 +1037,12 @@ async function fetchChoiceQuestions() {
       const batchBtn = document.getElementById('pta-choice-batch-btn');
       if (batchBtn) {
         batchBtn.disabled = false;
+      }
+
+      // 渲染题目列表
+      const floatWindow = document.getElementById('pta-helper-float');
+      if (floatWindow) {
+        renderChoiceList(floatWindow);
       }
     } else {
       console.log('选择题列表响应:', data);
@@ -2551,9 +2577,16 @@ function createCodeEditorHTML() {
 // 初始化选择题事件
 function initChoiceQuestionEvents(floatWindow) {
   const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
+  const resultsEl = floatWindow.querySelector('#pta-choice-results');
+
+  // 三态按钮：获取答案 → 获取中 → 提交
   if (batchBtn) {
     batchBtn.addEventListener('click', () => {
-      batchProcessChoiceQuestions(floatWindow);
+      if (batchBtn.textContent === '获取答案') {
+        batchProcessChoiceQuestions(floatWindow);
+      } else if (batchBtn.textContent === '提交') {
+        submitChoiceAnswers(floatWindow);
+      }
     });
   }
 
@@ -2561,18 +2594,40 @@ function initChoiceQuestionEvents(floatWindow) {
   if (countEl && window.choiceQuestions) {
     countEl.textContent = `共 ${window.choiceQuestions.length} 题`;
   }
-  const btn = floatWindow.querySelector('#pta-choice-batch-btn');
-  if (btn && window.choiceQuestions && window.choiceQuestions.length > 0) {
-    btn.disabled = false;
+
+  // 数据已加载则渲染题目列表
+  if (window.choiceQuestions && window.choiceQuestions.length > 0) {
+    renderChoiceList(floatWindow);
   }
 }
 
-// 分批处理选择题（每次20题）
+// 渲染题目列表到浮窗
+function renderChoiceList(floatWindow) {
+  const questions = window.choiceQuestions;
+  const listEl = floatWindow.querySelector('#pta-choice-list');
+  if (!listEl || !questions) return;
+
+  const choiceLetter = (i) => String.fromCharCode(65 + i);
+  let html = '';
+  questions.forEach((q, idx) => {
+    const options = q.choices.map((c, ci) => `<span style="font-size:12px;color:#999;margin-right:6px;">${choiceLetter(ci)}. ${c}</span>`).join('');
+    html += `<div class="choice-item" style="padding:8px 10px;border-bottom:1px solid #f5f5f5;font-size:13px;">
+      <span style="color:#999;margin-right:6px;">${idx + 1}.</span>
+      <span>${escapeHtml(q.content)}</span>
+      <div style="margin-top:4px;padding-left:16px;display:flex;flex-wrap:wrap;gap:4px;">${options}</div>
+      <span class="choice-answer" style="color:#32F08C;font-weight:bold;float:right;display:none;"></span>
+    </div>`;
+  });
+  listEl.innerHTML = html;
+
+  const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
+  if (batchBtn) batchBtn.disabled = false;
+}
+
+// 分批获取选择题答案（不自动提交）
 async function batchProcessChoiceQuestions(floatWindow) {
   const questions = window.choiceQuestions;
-  if (!questions || questions.length === 0) {
-    return;
-  }
+  if (!questions || questions.length === 0) return;
 
   const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
   const progressEl = floatWindow.querySelector('#pta-choice-progress');
@@ -2580,6 +2635,7 @@ async function batchProcessChoiceQuestions(floatWindow) {
   const progressBar = floatWindow.querySelector('#pta-choice-progress-bar');
   const resultsEl = floatWindow.querySelector('#pta-choice-results');
   const statusEl = floatWindow.querySelector('#pta-choice-status');
+  const listEl = floatWindow.querySelector('#pta-choice-list');
 
   const config = await new Promise(resolve => { getConfig(resolve); });
   const apiConfig = getActiveApiConfig(config);
@@ -2596,9 +2652,12 @@ async function batchProcessChoiceQuestions(floatWindow) {
   let current = 0;
   const allAnswers = {};
 
-  if (batchBtn) batchBtn.disabled = true;
+  // 按钮：获取中
+  if (batchBtn) {
+    batchBtn.textContent = '获取中';
+    batchBtn.disabled = true;
+  }
   progressEl.style.display = 'block';
-  resultsEl.innerHTML = '';
 
   const choiceLetter = (i) => String.fromCharCode(65 + i);
   const promptTemplate = config.choicePrompt || defaultConfig.choicePrompt;
@@ -2624,11 +2683,15 @@ async function batchProcessChoiceQuestions(floatWindow) {
         batch.forEach((q, idx) => {
           const answer = answers[idx] || '?';
           allAnswers[q.id] = answer;
-          resultsEl.innerHTML += `<div style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px;">
-            <span style="color:#999;">${q.id.slice(-6)}</span>
-            <span style="margin:0 8px;">${q.content}</span>
-            <span style="color:#32F08C;font-weight:bold;">→ ${answer}</span>
-          </div>`;
+          // 更新题目列表中的答案
+          const item = listEl?.querySelector(`.choice-item:nth-child(${questions.findIndex(qq => qq.id === q.id) + 1})`);
+          if (item) {
+            const answerSpan = item.querySelector('.choice-answer');
+            if (answerSpan) {
+              answerSpan.textContent = '→ ' + answer;
+              answerSpan.style.display = 'inline';
+            }
+          }
         });
       } else {
         throw new Error('AI 返回格式不正确');
@@ -2638,80 +2701,124 @@ async function batchProcessChoiceQuestions(floatWindow) {
       const pct = Math.round((current / total) * 100);
       progressText.textContent = `${current}/${total}`;
       progressBar.style.width = pct + '%';
+
+      // 滚动到最新
+      if (resultsEl) {
+        resultsEl.scrollTop = resultsEl.scrollHeight;
+      }
     } catch (e) {
       batch.forEach(q => {
-        resultsEl.innerHTML += `<div style="padding:6px 8px;border-bottom:1px solid #ffebee;font-size:13px;color:#f44336;">
-          <span style="color:#999;">${q.id.slice(-6)}</span>
-          <span style="margin:0 8px;">${q.content}</span>
-          <span>→ 解析失败</span>
-        </div>`;
+        const item = listEl?.querySelector(`.choice-item:nth-child(${questions.findIndex(qq => qq.id === q.id) + 1})`);
+        if (item) {
+          const answerSpan = item.querySelector('.choice-answer');
+          if (answerSpan) {
+            answerSpan.textContent = '→ 解析失败';
+            answerSpan.style.color = '#f44336';
+            answerSpan.style.display = 'inline';
+          }
+        }
       });
       current += batch.length;
       const pct = Math.round((current / total) * 100);
       progressText.textContent = `${current}/${total}`;
       progressBar.style.width = pct + '%';
+      if (resultsEl) resultsEl.scrollTop = resultsEl.scrollHeight;
     }
   }
 
-  // 提交选择题答案
+  // 全部获取完毕，按钮变成提交
+  window.choiceAllAnswers = allAnswers;
+  if (batchBtn) {
+    batchBtn.textContent = '提交';
+    batchBtn.disabled = false;
+    batchBtn.style.background = '#32F08C';
+  }
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#2196F3';
+  statusEl.style.background = '#e3f2fd';
+  statusEl.textContent = `答案获取完毕，共 ${total} 题，请检查后点击提交`;
+}
+
+// 手动提交选择题答案
+async function submitChoiceAnswers(floatWindow) {
+  const questions = window.choiceQuestions;
+  const allAnswers = window.choiceAllAnswers;
   const examId = window.choiceExamId;
-  if (examId && Object.keys(allAnswers).length > 0) {
+  const statusEl = floatWindow.querySelector('#pta-choice-status');
+  const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
+
+  if (!examId || !allAnswers || Object.keys(allAnswers).length === 0) {
     statusEl.style.display = 'block';
-    statusEl.style.color = '#2196F3';
-    statusEl.style.background = '#e3f2fd';
-    statusEl.textContent = '正在提交答案...';
+    statusEl.style.color = '#f44336';
+    statusEl.style.background = '#ffebee';
+    statusEl.textContent = '没有可提交的答案';
+    return;
+  }
 
-    try {
-      const details = questions
-        .filter(q => allAnswers[q.id])
-        .map(q => ({
-          problemId: '0',
-          problemSetProblemId: q.id,
-          multipleChoiceSubmissionDetail: {
-            answer: allAnswers[q.id]
-          }
-        }));
+  if (batchBtn) {
+    batchBtn.textContent = '提交中';
+    batchBtn.disabled = true;
+  }
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#2196F3';
+  statusEl.style.background = '#e3f2fd';
+  statusEl.textContent = '正在提交答案...';
 
-      const submitBody = {
-        problemType: 'MULTIPLE_CHOICE',
-        details: details
-      };
+  try {
+    const details = questions
+      .filter(q => allAnswers[q.id])
+      .map(q => ({
+        problemId: '0',
+        problemSetProblemId: q.id,
+        multipleChoiceSubmissionDetail: {
+          answer: allAnswers[q.id]
+        }
+      }));
 
-      const submitResponse = await fetch(`https://pintia.cn/api/exams/${examId}/exam-submissions`, {
-        headers: {
-          accept: 'application/json;charset=UTF-8',
-          'content-type': 'application/json;charset=UTF-8',
-          'x-lollipop': getLollipop(),
-          'x-marshmallow': ''
-        },
-        method: 'POST',
-        credentials: 'include',
-        body: JSON.stringify(submitBody)
-      });
+    const submitBody = {
+      problemType: 'MULTIPLE_CHOICE',
+      details: details
+    };
 
-      if (submitResponse.ok) {
-        statusEl.style.color = '#32F08C';
-        statusEl.style.background = '#e8f5e9';
-        statusEl.textContent = `提交成功！共 ${details.length} 题`;
-      } else {
-        const errData = await submitResponse.json().catch(() => ({}));
-        statusEl.style.color = '#f44336';
-        statusEl.style.background = '#ffebee';
-        statusEl.textContent = `提交失败: ${submitResponse.status} ${errData.error?.message || ''}`;
+    const submitResponse = await fetch(`https://pintia.cn/api/exams/${examId}/exam-submissions`, {
+      headers: {
+        accept: 'application/json;charset=UTF-8',
+        'content-type': 'application/json;charset=UTF-8',
+        'x-lollipop': getLollipop(),
+        'x-marshmallow': ''
+      },
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify(submitBody)
+    });
+
+    if (submitResponse.ok) {
+      statusEl.style.color = '#32F08C';
+      statusEl.style.background = '#e8f5e9';
+      statusEl.textContent = `提交成功！共 ${details.length} 题`;
+      if (batchBtn) {
+        batchBtn.textContent = '已完成';
+        batchBtn.disabled = true;
       }
-    } catch (e) {
+    } else {
+      const errData = await submitResponse.json().catch(() => ({}));
       statusEl.style.color = '#f44336';
       statusEl.style.background = '#ffebee';
-      statusEl.textContent = '提交失败: ' + e.message;
+      statusEl.textContent = `提交失败: ${submitResponse.status} ${errData.error?.message || ''}`;
+      if (batchBtn) {
+        batchBtn.textContent = '提交';
+        batchBtn.disabled = false;
+      }
     }
-  } else {
-    statusEl.style.display = 'block';
-    statusEl.style.color = '#32F08C';
-    statusEl.style.background = '#e8f5e9';
-    statusEl.textContent = `处理完成！共 ${total} 题`;
+  } catch (e) {
+    statusEl.style.color = '#f44336';
+    statusEl.style.background = '#ffebee';
+    statusEl.textContent = '提交失败: ' + e.message;
+    if (batchBtn) {
+      batchBtn.textContent = '提交';
+      batchBtn.disabled = false;
+    }
   }
-
-  if (batchBtn) batchBtn.disabled = false;
 }
 
 // 创建选择题页面HTML
@@ -2725,7 +2832,7 @@ function createChoiceQuestionHTML() {
       <div id="pta-choice-status" style="display:none;margin-bottom:12px;padding:10px;border-radius:6px;font-size:13px;text-align:center;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span id="pta-choice-count" style="font-size:14px;color:#666;">加载中...</span>
-        <button id="pta-choice-batch-btn" class="btn-complete-all" disabled style="width:auto;padding:8px 24px;">一键完成所有选择题</button>
+        <button id="pta-choice-batch-btn" class="btn-complete-all" disabled style="width:auto;padding:8px 24px;">获取答案</button>
       </div>
       <div id="pta-choice-progress" style="display:none;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;font-size:12px;color:#999;margin-bottom:4px;">
@@ -2737,7 +2844,7 @@ function createChoiceQuestionHTML() {
         </div>
       </div>
       <div id="pta-choice-results" style="max-height:400px;overflow-y:auto;">
-        <div style="text-align:center;padding:20px;color:#999;">加载中...</div>
+        <div id="pta-choice-list" style="text-align:center;padding:20px;color:#999;">加载中...</div>
       </div>
     </div>
   `;
@@ -2822,6 +2929,11 @@ function initCodeEditorEvents(floatWindow) {
     if (result.success) {
       statusDiv.textContent = '提交成功！';
       statusDiv.className = 'success';
+
+      // 轮询提交结果
+      if (result.examId && result.submissionId) {
+        pollSubmissionResult(statusDiv, result.examId, result.submissionId);
+      }
     } else {
       statusDiv.textContent = result.error || '提交失败';
       statusDiv.className = 'error';
@@ -2983,12 +3095,14 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
     
     const submitUrl = `https://pintia.cn/api/exams/${examId}/exam-submissions`;
     
+    const problemType = getProblemType();
+    const detailKey = problemType === 'CODE_COMPLETION' ? 'codeCompletionSubmissionDetail' : 'programmingSubmissionDetail';
     const body = {
-      problemType: 'PROGRAMMING',
+      problemType: problemType,
       details: [{
         problemId: '0',
         problemSetProblemId: localProblemSetProblemId,
-        programmingSubmissionDetail: {
+        [detailKey]: {
           program: code,
           compiler: 'GCC'
         }
@@ -3013,7 +3127,12 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
     const result = await response.json();
     
     if (response.ok) {
-      return { success: true, data: result };
+      const submissionId = typeof result === 'object' && result.submissionId 
+        ? result.submissionId 
+        : typeof result === 'string' 
+          ? result 
+          : null;
+      return { success: true, data: result, examId: examId, submissionId: submissionId };
     } else if (response.status === 429) {
       // 429错误，5-10秒随机等待后重试
       const delay = 5000 + Math.random() * 5000; // 5000-10000ms随机延迟
@@ -3034,6 +3153,185 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
     
     return submitCode(code, localProblemSetId, localProblemSetProblemId);
   }
+}
+
+// 轮询提交结果（共10次，间隔5秒）
+async function pollSubmissionResult(statusDiv, examId, submissionId) {
+  const MAX_ATTEMPTS = 10;
+  const INTERVAL_MS = 5000;
+
+  const resultColors = {
+    'ACCEPTED': '#32F08C',
+    'PARTIAL_ACCEPTED': '#ff9800',
+    'WRONG_ANSWER': '#f44336',
+    'COMPILE_ERROR': '#f44336',
+    'SEGMENTATION_FAULT': '#f44336',
+    'RUNTIME_ERROR': '#f44336',
+    'WAITING': '#999',
+    'RUNNING': '#2196F3',
+    'PRESENTATION_ERROR': '#ff9800',
+    'TIME_LIMIT_EXCEEDED': '#f44336',
+    'MEMORY_LIMIT_EXCEEDED': '#f44336',
+    'OUTPUT_LIMIT_EXCEEDED': '#f44336'
+  };
+
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    try {
+      if (i === 0) {
+        statusDiv.textContent = '正在获取结果...';
+      } else {
+        statusDiv.textContent = `判题中 (${i}/${MAX_ATTEMPTS - 1})...`;
+        await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
+      }
+
+      const url = `https://pintia.cn/api/exams/${examId}/submissions/${submissionId}`;
+      const response = await fetch(url, {
+        headers: {
+          accept: 'application/json;charset=UTF-8',
+          'content-type': 'application/json;charset=UTF-8',
+          'x-lollipop': getLollipop(),
+          'x-marshmallow': ''
+        },
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.log(`轮询提交结果 [${i + 1}/${MAX_ATTEMPTS}] HTTP ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      console.log(`提交结果 [${i + 1}/${MAX_ATTEMPTS}]:`, data);
+
+      const sub = data?.submission;
+      const status = sub?.status;
+      if (!status) continue;
+
+      // 还在等待/判题中，继续轮询
+      if (status === 'WAITING' || status === 'RUNNING' || status === 'JUDGING' || status === 'PROGRAMMING_JUDGING') {
+        statusDiv.textContent = status === 'WAITING' ? '排队等待中...' : '判题中...';
+        statusDiv.className = '';
+        continue;
+      }
+
+      // 判题结束，解析测试点结果
+      const jrc = sub?.judgeResponseContents?.[0];
+      const judgeResult = jrc?.programmingJudgeResponseContent || jrc?.codeCompletionJudgeResponseContent;
+      const testcases = judgeResult?.testcaseJudgeResults || {};
+
+      // 编译错误特殊处理
+      if (status === 'COMPILE_ERROR') {
+        const compileLog = judgeResult?.compilationResult?.log || '';
+        statusDiv.innerHTML = `<span style="color:${resultColors[status]};font-weight:bold;">COMPILE_ERROR</span>`;
+        if (compileLog) {
+          console.log('编译错误日志:', compileLog);
+        }
+        statusDiv.className = 'error';
+        return;
+      }
+
+      // 统计测试点
+      const entries = Object.values(testcases);
+      const total = entries.length;
+      const passed = entries.filter(t => t.result === 'ACCEPTED').length;
+
+      let displayStatus = status;
+      if (total > 0) {
+        displayStatus = `${passed}/${total} ${status}`;
+      }
+
+      statusDiv.innerHTML = `<span style="color:${resultColors[status] || '#f44336'};font-weight:bold;">${displayStatus}</span>`;
+      statusDiv.className = total > 0 && passed === total ? 'success' : (status === 'PARTIAL_ACCEPTED' ? '' : 'error');
+      return;
+    } catch (e) {
+      console.log(`轮询提交结果 [${i + 1}/${MAX_ATTEMPTS}] 出错:`, e.message);
+    }
+  }
+
+  statusDiv.textContent = '提交成功（判题超时）';
+  statusDiv.className = 'success';
+}
+
+// 轮询提交结果并更新按钮文字
+async function pollForButtonResult(actionBtn, examId, submissionId) {
+  const MAX_ATTEMPTS = 10;
+  const INTERVAL_MS = 5000;
+
+  const colors = {
+    'ACCEPTED': '#32F08C',
+    'PARTIAL_ACCEPTED': '#ff9800',
+    'WRONG_ANSWER': '#f44336',
+    'COMPILE_ERROR': '#f44336',
+    'SEGMENTATION_FAULT': '#f44336'
+  };
+
+  const shortNames = {
+    'ACCEPTED': 'AC',
+    'PARTIAL_ACCEPTED': 'PA',
+    'WRONG_ANSWER': 'WA',
+    'COMPILE_ERROR': 'CE',
+    'SEGMENTATION_FAULT': 'SF'
+  };
+
+  actionBtn.textContent = '等待结果';
+  actionBtn.style.background = '#ff9800';
+  actionBtn.disabled = true;
+
+  for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    try {
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
+      }
+
+      const url = `https://pintia.cn/api/exams/${examId}/submissions/${submissionId}`;
+      const response = await fetch(url, {
+        headers: {
+          accept: 'application/json;charset=UTF-8',
+          'content-type': 'application/json;charset=UTF-8',
+          'x-lollipop': getLollipop(),
+          'x-marshmallow': ''
+        },
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const sub = data?.submission;
+      const status = sub?.status;
+      if (!status) continue;
+
+      if (status === 'WAITING' || status === 'RUNNING' || status === 'JUDGING' || status === 'PROGRAMMING_JUDGING') {
+        actionBtn.textContent = status === 'WAITING' ? '判题中' : '判题中';
+        actionBtn.style.background = '#999';
+        continue;
+      }
+
+      const jrc = sub?.judgeResponseContents?.[0];
+      const judgeResult = jrc?.programmingJudgeResponseContent || jrc?.codeCompletionJudgeResponseContent;
+      const testcases = judgeResult?.testcaseJudgeResults || {};
+      const entries = Object.values(testcases);
+      const total = entries.length;
+      const passed = entries.filter(t => t.result === 'ACCEPTED').length;
+
+      const short = shortNames[status] || status;
+      const text = total > 0 ? `${passed}/${total} ${short}` : short;
+
+      actionBtn.textContent = text;
+  actionBtn.style.background = colors[status] || '#999';
+  actionBtn.disabled = false;
+  return status;
+    } catch (e) {
+      // 继续轮询
+    }
+  }
+
+  actionBtn.textContent = '超时';
+  actionBtn.style.background = '#999';
+  actionBtn.disabled = false;
+  return 'TIMEOUT';
 }
 
 // 监听 URL 变化
@@ -3502,6 +3800,8 @@ function createSubmissionResultWindow() {
         const detail = window.currentSubmissionData.submission.submissionDetails[0];
         if (detail.programmingSubmissionDetail && detail.programmingSubmissionDetail.program) {
           resCode = detail.programmingSubmissionDetail.program;
+        } else if (detail.codeCompletionSubmissionDetail && detail.codeCompletionSubmissionDetail.program) {
+          resCode = detail.codeCompletionSubmissionDetail.program;
         }
       }
       
@@ -3513,16 +3813,19 @@ function createSubmissionResultWindow() {
       // 提取错误信息
       if (window.currentSubmissionData && window.currentSubmissionData.submission && window.currentSubmissionData.submission.judgeResponseContents && window.currentSubmissionData.submission.judgeResponseContents.length > 0) {
         const judgeResponse = window.currentSubmissionData.submission.judgeResponseContents[0];
-        if (judgeResponse.programmingJudgeResponseContent && judgeResponse.programmingJudgeResponseContent.compilationResult) {
-          compilerMsg = judgeResponse.programmingJudgeResponseContent.compilationResult.log || '';
+        const judgeContent = judgeResponse.programmingJudgeResponseContent || judgeResponse.codeCompletionJudgeResponseContent;
+        if (judgeContent && judgeContent.compilationResult) {
+          compilerMsg = judgeContent.compilationResult.log || '';
         }
       }
       
       // 提取测试点情况
       if (window.currentSubmissionData && window.currentSubmissionData.submission) {
         const hints = window.currentSubmissionData.submission.hints || {};
-        const testcaseResults = window.currentSubmissionData.submission.judgeResponseContents && window.currentSubmissionData.submission.judgeResponseContents.length > 0 ? 
-          window.currentSubmissionData.submission.judgeResponseContents[0].programmingJudgeResponseContent.testcaseJudgeResults || {} : {};
+        const judgeResponse = window.currentSubmissionData.submission.judgeResponseContents && window.currentSubmissionData.submission.judgeResponseContents.length > 0 ? 
+          window.currentSubmissionData.submission.judgeResponseContents[0] : null;
+        const judgeContent = judgeResponse ? (judgeResponse.programmingJudgeResponseContent || judgeResponse.codeCompletionJudgeResponseContent) : null;
+        const testcaseResults = judgeContent ? (judgeContent.testcaseJudgeResults || {}) : {};
         
         const testcaseInfo = [];
         
@@ -3746,6 +4049,9 @@ function createSubmissionResultWindow() {
       if (result.success) {
         statusDiv.textContent = '代码提交成功！';
         statusDiv.className = 'success';
+        if (result.examId && result.submissionId) {
+          pollSubmissionResult(statusDiv, result.examId, result.submissionId);
+        }
       } else {
         statusDiv.textContent = '提交失败: ' + result.error;
         statusDiv.className = 'error';

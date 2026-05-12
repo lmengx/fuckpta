@@ -1,0 +1,468 @@
+以下是测试数据，分别为等待中、完全正确、部分正确、答案错误
+
+{
+    "publicCases": {
+        "0": false,
+        "1": false,
+        "2": false
+    },
+    "submission": {
+        "id": "2054083652873674752",
+        "userId": "1998560736387239936",
+        "problemType": "PROGRAMMING",
+        "problemSetProblemId": "782",
+        "submitAt": "2026-05-12T06:18:00Z",
+        "status": "WAITING",
+        "score": 0,
+        "compiler": "GCC",
+        "time": 0,
+        "memory": 0,
+        "submissionDetails": [
+            {
+                "problemSetProblemId": "782",
+                "programmingSubmissionDetail": {
+                    "compiler": "GCC",
+                    "program": "#include <stdio.h>\n\nint main() {\n    int start, delta;\n    scanf(\"%d %d\", &start, &delta);\n\n    int hour, minute;\n    if (start == 0) {\n        hour = 0;\n        minute = 0;\n    } else if (start < 1000) {\n        hour = start / 100;\n        minute = start % 100;\n    } else {\n        hour = start / 100;\n        minute = start % 100;\n    }\n\n    int total_minutes = hour * 60 + minute + delta;\n    int new_hour = total_minutes / 60;\n    int new_minute = total_minutes % 60;\n\n    if (new_hour == 0) {\n        printf(\"0%d\\n\", new_minute);\n    } else if (new_minute < 10) {\n        printf(\"%d0%d\\n\", new_hour, new_minute);\n    } else {\n        printf(\"%d%d\\n\", new_hour, new_minute);\n    }\n\n    return 0;\n}"
+                },
+                "problemId": "0"
+            }
+        ],
+        "judgeResponseContents": [],
+        "hints": {
+            "0": "sample 满4位，分钟数超过60，有进位",
+            "1": "读不满4位，进位分钟正好是0",
+            "2": "分钟小于0，输出不满4位且小时是0"
+        },
+        "problemSetId": "14",
+        "previewSubmission": false,
+        "cause": "",
+        "judgeAt": "1970-01-01T00:00:00Z"
+    },
+    "queued": 87,
+    "examMember": {
+        "userGroupId": "0",
+        "examId": "0",
+        "userId": "1998560736387239936",
+        "studentUserId": "0"
+    },
+    "user": {
+        "id": "1998560736387239936",
+        "nickname": "用户1709"
+    },
+    "studentUser": {
+        "studentNumber": "",
+        "name": "",
+        "id": "0"
+    }
+}
+
+
+
+{
+    "publicCases": {
+        "0": false,
+        "1": false,
+        "2": false
+    },
+    "submission": {
+        "id": "2054083652873674752",
+        "userId": "1998560736387239936",
+        "problemType": "PROGRAMMING",
+        "problemSetProblemId": "782",
+        "submitAt": "2026-05-12T06:18:00Z",
+        "status": "ACCEPTED",
+        "score": 15,
+        "compiler": "GCC",
+        "time": 0.001,
+        "memory": 581632,
+        "submissionDetails": [
+            {
+                "problemSetProblemId": "782",
+                "programmingSubmissionDetail": {
+                    "compiler": "GCC",
+                    "program": "#include <stdio.h>\n\nint main() {\n    int start, delta;\n    scanf(\"%d %d\", &start, &delta);\n\n    int hour, minute;\n    if (start == 0) {\n        hour = 0;\n        minute = 0;\n    } else if (start < 1000) {\n        hour = start / 100;\n        minute = start % 100;\n    } else {\n        hour = start / 100;\n        minute = start % 100;\n    }\n\n    int total_minutes = hour * 60 + minute + delta;\n    int new_hour = total_minutes / 60;\n    int new_minute = total_minutes % 60;\n\n    if (new_hour == 0) {\n        printf(\"0%d\\n\", new_minute);\n    } else if (new_minute < 10) {\n        printf(\"%d0%d\\n\", new_hour, new_minute);\n    } else {\n        printf(\"%d%d\\n\", new_hour, new_minute);\n    }\n\n    return 0;\n}"
+                },
+                "problemId": "0"
+            }
+        ],
+        "judgeResponseContents": [
+            {
+                "status": "ACCEPTED",
+                "score": 15,
+                "programmingJudgeResponseContent": {
+                    "compilationResult": {
+                        "log": "a.c: In function ‘main’:\na.c:5:5: warning: ignoring return value of ‘scanf’ declared with attribute ‘warn_unused_result’ [-Wunused-result]\n    5 |     scanf(\"%d %d\", &start, &delta);\n      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+                        "success": true,
+                        "error": ""
+                    },
+                    "checkerCompilationResult": {
+                        "log": "",
+                        "success": false,
+                        "error": ""
+                    },
+                    "testcaseJudgeResults": {
+                        "0": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 311296,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 9,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "1": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 581632,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 3,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "2": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 315392,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 3,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        }
+                    }
+                },
+                "problemSetProblemId": "782"
+            }
+        ],
+        "hints": {
+            "0": "sample 满4位，分钟数超过60，有进位",
+            "1": "读不满4位，进位分钟正好是0",
+            "2": "分钟小于0，输出不满4位且小时是0"
+        },
+        "problemSetId": "14",
+        "previewSubmission": false,
+        "cause": "",
+        "judgeAt": "2026-05-12T06:18:05Z"
+    },
+    "queued": -1,
+    "examMember": {
+        "userGroupId": "0",
+        "examId": "0",
+        "userId": "1998560736387239936",
+        "studentUserId": "0"
+    },
+    "user": {
+        "id": "1998560736387239936",
+        "nickname": "用户1709"
+    },
+    "studentUser": {
+        "studentNumber": "",
+        "name": "",
+        "id": "0"
+    }
+}
+
+
+{
+    "publicCases": {
+        "0": false,
+        "1": false,
+        "2": false,
+        "3": false
+    },
+    "submission": {
+        "id": "2038645474912858112",
+        "userId": "1998560736387239936",
+        "problemType": "PROGRAMMING",
+        "problemSetProblemId": "783",
+        "submitAt": "2026-03-30T15:52:12Z",
+        "status": "PARTIAL_ACCEPTED",
+        "score": 6.0,
+        "compiler": "GCC",
+        "time": 0.001,
+        "memory": 565248,
+        "submissionDetails": [
+            {
+                "problemSetProblemId": "783",
+                "programmingSubmissionDetail": {
+                    "compiler": "GCC",
+                    "program": "#include \u003cstdio.h\u003e\n\nint main() {\n    int n;\n    scanf(\"%d\", \u0026n);\n    int a \u003d n % 10, b \u003d n / 10 % 10, c \u003d n / 100;\n    printf(\"%d%d%d\", a, b, c);\n    return 0;\n}"
+                },
+                "problemId": "0"
+            }
+        ],
+        "judgeResponseContents": [
+            {
+                "status": "PARTIAL_ACCEPTED",
+                "score": 6.0,
+                "programmingJudgeResponseContent": {
+                    "compilationResult": {
+                        "log": "a.c: In function ‘main’:\na.c:5:5: warning: ignoring return value of ‘scanf’ declared with attribute ‘warn_unused_result’ [-Wunused-result]\n    5 |     scanf(\"%d\", \u0026n);\n      |     ^~~~~~~~~~~~~~~",
+                        "success": true,
+                        "error": ""
+                    },
+                    "checkerCompilationResult": {
+                        "log": "",
+                        "success": false,
+                        "error": ""
+                    },
+                    "testcaseJudgeResults": {
+                        "0": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 524288,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 5,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "1": {
+                            "result": "WRONG_ANSWER",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 565248,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 0,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "2": {
+                            "result": "WRONG_ANSWER",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 544768,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 0,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "3": {
+                            "result": "ACCEPTED",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 524288,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 1,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        }
+                    }
+                },
+                "problemSetProblemId": "783"
+            }
+        ],
+        "hints": {
+            "0": "sample 满3位没有0",
+            "1": "2个0",
+            "2": "1个0，数字非相邻有序",
+            "3": "中间1个0"
+        },
+        "problemSetId": "14",
+        "previewSubmission": false,
+        "cause": "",
+        "judgeAt": "2026-03-30T15:52:12Z"
+    },
+    "queued": -1,
+    "examMember": {
+        "userGroupId": "0",
+        "examId": "0",
+        "userId": "1998560736387239936",
+        "studentUserId": "0"
+    },
+    "user": {
+        "id": "1998560736387239936",
+        "nickname": "用户1709"
+    },
+    "studentUser": {
+        "studentNumber": "",
+        "name": "",
+        "id": "0"
+    }
+}
+
+{
+    "publicCases": {
+        "0": false,
+        "1": false,
+        "2": false,
+        "3": false
+    },
+    "submission": {
+        "id": "2038645613853372416",
+        "userId": "1998560736387239936",
+        "problemType": "PROGRAMMING",
+        "problemSetProblemId": "2990",
+        "submitAt": "2026-03-30T15:52:45Z",
+        "status": "WRONG_ANSWER",
+        "score": 0.0,
+        "compiler": "GCC",
+        "time": 0.005,
+        "memory": 573440,
+        "submissionDetails": [
+            {
+                "problemSetProblemId": "2990",
+                "programmingSubmissionDetail": {
+                    "compiler": "GCC",
+                    "program": "#include \u003cstdio.h\u003e\n\nvoid dfs(int n, int start, int depth, int* path, int pathSize) {\n    if (n \u003d\u003d 0) {\n        for (int i \u003d 0; i \u003c pathSize - 1; i++) {\n            printf(\"%d+\", path[i]);\n        }\n        printf(\"%d\\n\", path[pathSize - 1]);\n        return;\n    }\n    for (int i \u003d start; i \u003c\u003d n; i++) {\n        path[pathSize] \u003d i;\n        dfs(n - i, i, pathSize + 1, path, pathSize + 1);\n    }\n}\n\nint main() {\n    int n;\n    scanf(\"%d\", \u0026n);\n    int path[31];\n    dfs(n, 1, 0, path, 0);\n    return 0;\n}"
+                },
+                "problemId": "0"
+            }
+        ],
+        "judgeResponseContents": [
+            {
+                "status": "WRONG_ANSWER",
+                "score": 0.0,
+                "programmingJudgeResponseContent": {
+                    "compilationResult": {
+                        "log": "a.c: In function ‘main’:\na.c:19:5: warning: ignoring return value of ‘scanf’ declared with attribute ‘warn_unused_result’ [-Wunused-result]\n   19 |     scanf(\"%d\", \u0026n);\n      |     ^~~~~~~~~~~~~~~",
+                        "success": true,
+                        "error": ""
+                    },
+                    "checkerCompilationResult": {
+                        "log": "",
+                        "success": false,
+                        "error": ""
+                    },
+                    "testcaseJudgeResults": {
+                        "0": {
+                            "result": "WRONG_ANSWER",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.001,
+                            "memory": 438272,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 0,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "1": {
+                            "result": "WRONG_ANSWER",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.002,
+                            "memory": 573440,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 0,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "2": {
+                            "result": "WRONG_ANSWER",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.002,
+                            "memory": 438272,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 0,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        },
+                        "3": {
+                            "result": "WRONG_ANSWER",
+                            "exceed": "UNKNOWN_TESTCASE_EXCEED",
+                            "time": 0.005,
+                            "memory": 544768,
+                            "exitcode": 0,
+                            "termsig": 0,
+                            "error": "",
+                            "stdout": "",
+                            "stderr": "",
+                            "checkerOutput": "",
+                            "testcaseScore": 0,
+                            "stdoutTruncated": false,
+                            "stderrTruncated": false,
+                            "showOutput": false
+                        }
+                    }
+                },
+                "problemSetProblemId": "2990"
+            }
+        ],
+        "hints": {
+            "0": "样例等价，多行输出",
+            "1": "一行内输出",
+            "2": "最小N",
+            "3": "最大N"
+        },
+        "problemSetId": "14",
+        "previewSubmission": false,
+        "cause": "",
+        "judgeAt": "2026-03-30T15:52:45Z"
+    },
+    "queued": -1,
+    "examMember": {
+        "userGroupId": "0",
+        "examId": "0",
+        "userId": "1998560736387239936",
+        "studentUserId": "0"
+    },
+    "user": {
+        "id": "1998560736387239936",
+        "nickname": "用户1709"
+    },
+    "studentUser": {
+        "studentNumber": "",
+        "name": "",
+        "id": "0"
+    }
+}
