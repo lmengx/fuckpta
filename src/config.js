@@ -52,7 +52,20 @@ export async function checkForUpdates() {
     }
     
     const verData = await response.json();
-    const latestVersion = verData.version;
+    const latestVersion = String(verData.version).trim();
+    
+    // 字符串相等直接跳过
+    if (PLUGIN_CONFIG.version === latestVersion) {
+      return {
+        hasUpdate: false,
+        currentVersion: PLUGIN_CONFIG.version,
+        latestVersion: latestVersion,
+        changes: verData.changes || [],
+        source: 'github',
+        githubUrl: PLUGIN_CONFIG.githubRepo,
+        giteeUrl: PLUGIN_CONFIG.giteeRepo
+      };
+    }
     
     // 比较版本号
     const comparison = compareVersion(PLUGIN_CONFIG.version, latestVersion);
@@ -81,7 +94,20 @@ export async function checkForUpdates() {
       }
       
       const verData = await response.json();
-      const latestVersion = verData.version;
+      const latestVersion = String(verData.version).trim();
+      
+      // 字符串相等直接跳过
+      if (PLUGIN_CONFIG.version === latestVersion) {
+        return {
+          hasUpdate: false,
+          currentVersion: PLUGIN_CONFIG.version,
+          latestVersion: latestVersion,
+          changes: verData.changes || [],
+          source: 'gitee',
+          githubUrl: PLUGIN_CONFIG.githubRepo,
+          giteeUrl: PLUGIN_CONFIG.giteeRepo
+        };
+      }
       
       // 比较版本号
       const comparison = compareVersion(PLUGIN_CONFIG.version, latestVersion);
