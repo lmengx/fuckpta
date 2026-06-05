@@ -424,6 +424,49 @@ function extractSubmissionResultWithDelay() {
   }, 10);
 }
 
+// FUCKPTA retry wrapper
+async function pintiaFetch(url, options = {}, retries = 3) {
+  const baseDelay = 1000;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    let resp;
+    try {
+      resp = await fetch(url, options);
+    } catch (e) {
+      if (attempt < retries) {
+        const delay = baseDelay * (2 ** attempt) + Math.random() * 1000;
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw e;
+    }
+    if (resp.ok) return resp;
+    // 429 或 5xx 服务器错误 → 重试
+    if ((resp.status === 429 || resp.status >= 500) && attempt < retries) {
+      const delay = baseDelay * (2 ** attempt) + Math.random() * 1000;
+      await new Promise(r => setTimeout(r, delay));
+      continue;
+    }
+    return resp;
+  }
+}
+
+// 获取 exam ID
+async function getExamId(problemSetId) {
+  const resp = await pintiaFetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
+    headers: {
+      'accept': 'application/json;charset=UTF-8',
+      'content-type': 'application/json;charset=UTF-8',
+      'x-lollipop': getLollipop(),
+      'x-marshmallow': ''
+    },
+    method: 'GET',
+    credentials: 'include'
+  });
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  return data?.exam?.id || null;
+}
+
 // 检查是否是编程题/函数题详情页（/type/7 或 /type/6 含 problemSetProblemId）
 function isProgrammingDetailPage() {
   const url = window.location.href;
@@ -482,26 +525,8 @@ async function fetchProblemList() {
     }
     const problemSetId = problemSetMatch[1];
 
-    // 获取examId（需要先调用API获取）
-    const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
-      headers: {
-        accept: 'application/json;charset=UTF-8',
-        'content-type': 'application/json;charset=UTF-8',
-        'x-lollipop': getLollipop(),
-        'x-marshmallow': ''
-      },
-      method: 'GET',
-      credentials: 'include'
-    });
-
-    if (!examResponse.ok) {
-      showToast(`获取examId失败: ${examResponse.status}`, 'error');
-      problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">无法获取examId</span></div>';
-      return;
-    }
-
-    const examData = await examResponse.json();
-    const examId = examData.exam?.id;
+    // 获取examId
+    const examId = await getExamId(problemSetId);
     if (!examId) {
       showToast('无法获取examId', 'error');
       problemListContainer.innerHTML = '<div class="problem-item"><span class="problem-index">错误</span><span class="problem-title">无法获取examId</span></div>';
@@ -511,7 +536,7 @@ async function fetchProblemList() {
     // 获取题目状态
     let statusMap = {};
     try {
-      const statusResponse = await fetch(
+      const statusResponse = await pintiaFetch(
         `https://pintia.cn/api/exams/${examId}/problem-sets/${problemSetId}/problem-status`,
         {
           headers: {
@@ -535,7 +560,7 @@ async function fetchProblemList() {
     // 获取题目列表（自动翻页）
     const problemType = getProblemType();
     const PAGE_SIZE = 200;
-    const firstResponse = await fetch(
+    const firstResponse = await pintiaFetch(
       `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=${problemType}&page=0&limit=${PAGE_SIZE}`,
       {
         headers: {
@@ -565,7 +590,7 @@ async function fetchProblemList() {
       const totalPages = Math.ceil(total / PAGE_SIZE);
       const pagePromises = [];
       for (let p = 1; p < totalPages; p++) {
-        pagePromises.push(fetch(
+        pagePromises.push(pintiaFetch(
           `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problem-list?exam_id=${examId}&problem_type=${problemType}&page=${p}&limit=${PAGE_SIZE}`,
           {
             headers: {
@@ -656,29 +681,13 @@ async function fetchProblemList() {
               actionBtn.style.background = '#2196F3';
 
               // 步骤1: 获取examId
-              const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
-                headers: {
-                  accept: 'application/json;charset=UTF-8',
-                  'content-type': 'application/json;charset=UTF-8',
-                  'x-lollipop': getLollipop(),
-                  'x-marshmallow': ''
-                },
-                method: 'GET',
-                credentials: 'include'
-              });
-
-              if (!examResponse.ok) {
-                throw new Error('获取examId失败');
-              }
-
-              const examData = await examResponse.json();
-              const examId = examData.exam?.id;
+              const examId = await getExamId(problemSetId);
               if (!examId) {
                 throw new Error('无法获取examId');
               }
 
               // 步骤2: 获取题目内容
-              const problemResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
+              const problemResponse = await pintiaFetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
                 headers: {
                   accept: 'application/json;charset=UTF-8',
                   'content-type': 'application/json;charset=UTF-8',
@@ -793,23 +802,7 @@ async function fetchProblemList() {
               try {
                 const problems = allProblems;
 
-                const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
-                  headers: {
-                    accept: 'application/json;charset=UTF-8',
-                    'content-type': 'application/json;charset=UTF-8',
-                    'x-lollipop': getLollipop(),
-                    'x-marshmallow': ''
-                  },
-                  method: 'GET',
-                  credentials: 'include'
-                });
-
-                if (!examResponse.ok) {
-                  throw new Error('获取examId失败');
-                }
-
-                const examData = await examResponse.json();
-                const examId = examData.exam?.id;
+                const examId = await getExamId(problemSetId);
                 if (!examId) {
                   throw new Error('无法获取examId');
                 }
@@ -880,7 +873,7 @@ async function fetchProblemList() {
                     }
 
                     // 步骤3: 获取题目内容
-                    const problemResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
+                    const problemResponse = await pintiaFetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems/${problemId}`, {
                       headers: {
                         accept: 'application/json;charset=UTF-8',
                         'content-type': 'application/json;charset=UTF-8',
@@ -1047,24 +1040,7 @@ async function fetchChoiceQuestions() {
     }
     const problemSetId = problemSetMatch[1];
 
-    const examResponse = await fetch(`https://pintia.cn/api/problem-sets/${problemSetId}/exams`, {
-      headers: {
-        accept: 'application/json;charset=UTF-8',
-        'content-type': 'application/json;charset=UTF-8',
-        'x-lollipop': getLollipop(),
-        'x-marshmallow': ''
-      },
-      method: 'GET',
-      credentials: 'include'
-    });
-
-    if (!examResponse.ok) {
-      console.log('获取examId失败:', examResponse.status);
-      return;
-    }
-
-    const examData = await examResponse.json();
-    const examId = examData.exam?.id;
+    const examId = await getExamId(problemSetId);
     if (!examId) {
       console.log('无法获取examId');
       return;
@@ -1073,7 +1049,7 @@ async function fetchChoiceQuestions() {
     window.choiceExamId = examId;
     window.choiceProblemSetId = problemSetId;
 
-    const listResponse = await fetch(
+    const listResponse = await pintiaFetch(
       `https://pintia.cn/api/problem-sets/${problemSetId}/exam-problems?exam_id=${examId}&problem_type=MULTIPLE_CHOICE`,
       {
         headers: {
@@ -2799,11 +2775,6 @@ async function batchProcessChoiceQuestions(floatWindow) {
       const pct = Math.round((current / total) * 100);
       progressText.textContent = `${current}/${total}`;
       progressBar.style.width = pct + '%';
-
-      // 滚动到最新
-      if (resultsEl) {
-        resultsEl.scrollTop = resultsEl.scrollHeight;
-      }
     } catch (e) {
       batch.forEach(q => {
         const item = listEl?.querySelector(`.choice-item:nth-child(${questions.findIndex(qq => qq.id === q.id) + 1})`);
@@ -2820,7 +2791,6 @@ async function batchProcessChoiceQuestions(floatWindow) {
       const pct = Math.round((current / total) * 100);
       progressText.textContent = `${current}/${total}`;
       progressBar.style.width = pct + '%';
-      if (resultsEl) resultsEl.scrollTop = resultsEl.scrollHeight;
     }
   }
 
@@ -2878,7 +2848,7 @@ async function submitChoiceAnswers(floatWindow) {
       details: details
     };
 
-    const submitResponse = await fetch(`https://pintia.cn/api/exams/${examId}/exam-submissions`, {
+    const submitResponse = await pintiaFetch(`https://pintia.cn/api/exams/${examId}/exam-submissions`, {
       headers: {
         accept: 'application/json;charset=UTF-8',
         'content-type': 'application/json;charset=UTF-8',
@@ -3176,7 +3146,8 @@ function getLollipop() {
 }
 
 // 提交代码（带重试机制）
-async function submitCode(code, problemSetId = null, problemSetProblemId = null) {
+async function submitCode(code, problemSetId = null, problemSetProblemId = null, _retryDepth = 0) {
+  const MAX_RETRY = 10;
   try {
     let url = window.location.href;
     let localProblemSetId = problemSetId;
@@ -3206,25 +3177,7 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
     }
     
     // 获取 exam ID
-    let examId = null;
-    const examsResponse = await fetch(`https://pintia.cn/api/problem-sets/${localProblemSetId}/exams`, {
-      headers: {
-        'accept': 'application/json;charset=UTF-8',
-        'content-type': 'application/json;charset=UTF-8',
-        'x-lollipop': getLollipop(),
-        'x-marshmallow': ''
-      },
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (examsResponse.ok) {
-      const examsData = await examsResponse.json();
-      if (examsData && examsData.exam && examsData.exam.id) {
-        examId = examsData.exam.id;
-      }
-    }
-    
+    const examId = await getExamId(localProblemSetId);
     if (!examId) {
       return { success: false, error: '无法获取 exam ID' };
     }
@@ -3245,7 +3198,7 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
       }]
     };
     
-    const response = await fetch(submitUrl, {
+    const response = await pintiaFetch(submitUrl, {
       headers: {
         'accept': 'application/json;charset=UTF-8',
         'accept-language': 'zh-CN',
@@ -3269,25 +3222,20 @@ async function submitCode(code, problemSetId = null, problemSetProblemId = null)
           ? result 
           : null;
       return { success: true, data: result, examId: examId, submissionId: submissionId };
-    } else if (response.status === 429) {
-      // 429错误，5-10秒随机等待后重试
-      const delay = 5000 + Math.random() * 5000; // 5000-10000ms随机延迟
-      
-      // 等待指定时间
+    } else if ((response.status === 429 || response.status >= 500) && _retryDepth < MAX_RETRY) {
+      const delay = 5000 + Math.random() * 5000;
       await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // 递归重试，一直重试下去
-      return submitCode(code, localProblemSetId, localProblemSetProblemId);
+      return submitCode(code, localProblemSetId, localProblemSetProblemId, _retryDepth + 1);
     } else {
       return { success: false, error: result.message || '提交失败' };
     }
   } catch (error) {
-    // 网络错误也可以重试
-    const delay = 5000 + Math.random() * 5000; // 5000-10000ms随机延迟
-    
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
-    return submitCode(code, localProblemSetId, localProblemSetProblemId);
+    if (_retryDepth < MAX_RETRY) {
+      const delay = 5000 + Math.random() * 5000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return submitCode(code, localProblemSetId, localProblemSetProblemId, _retryDepth + 1);
+    }
+    return { success: false, error: error.message || '网络错误' };
   }
 }
 
@@ -3321,7 +3269,7 @@ async function pollSubmissionResult(statusDiv, examId, submissionId) {
       }
 
       const url = `https://pintia.cn/api/exams/${examId}/submissions/${submissionId}`;
-      const response = await fetch(url, {
+      const response = await pintiaFetch(url, {
         headers: {
           accept: 'application/json;charset=UTF-8',
           'content-type': 'application/json;charset=UTF-8',
@@ -3421,7 +3369,7 @@ async function pollForButtonResult(actionBtn, examId, submissionId) {
       }
 
       const url = `https://pintia.cn/api/exams/${examId}/submissions/${submissionId}`;
-      const response = await fetch(url, {
+      const response = await pintiaFetch(url, {
         headers: {
           accept: 'application/json;charset=UTF-8',
           'content-type': 'application/json;charset=UTF-8',
