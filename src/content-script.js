@@ -2685,17 +2685,24 @@ function renderChoiceList(floatWindow) {
   let html = '';
   questions.forEach((q, idx) => {
     const options = q.choices.map((c, ci) => `<span style="font-size:12px;color:#999;margin-right:6px;">${choiceLetter(ci)}. ${c}</span>`).join('');
-    html += `<div class="choice-item" style="padding:8px 10px;border-bottom:1px solid #f5f5f5;font-size:13px;">
-      <span style="color:#999;margin-right:6px;">${idx + 1}.</span>
-      <span>${escapeHtml(q.content)}</span>
+    html += `<div class="choice-item" data-question-id="${escapeHtml(String(q.id))}" style="padding:8px 10px;border-bottom:1px solid #f5f5f5;font-size:13px;">
+      <div style="display:flex;align-items:flex-start;gap:6px;">
+        <span style="color:#999;flex:0 0 auto;">${idx + 1}.</span>
+        <span style="flex:1;min-width:0;">${escapeHtml(q.content)}</span>
+        <span class="choice-answer" style="color:#32F08C;font-weight:bold;display:none;flex:0 0 auto;margin-left:8px;"></span>
+      </div>
       <div style="margin-top:4px;padding-left:16px;display:flex;flex-wrap:wrap;gap:4px;">${options}</div>
-      <span class="choice-answer" style="color:#32F08C;font-weight:bold;float:right;display:none;"></span>
     </div>`;
   });
   listEl.innerHTML = html;
 
   const batchBtn = floatWindow.querySelector('#pta-choice-batch-btn');
   if (batchBtn) batchBtn.disabled = false;
+}
+
+function getChoiceItemByQuestionId(listEl, questionId) {
+  if (!listEl) return null;
+  return listEl.querySelector(`.choice-item[data-question-id="${CSS.escape(String(questionId))}"]`);
 }
 
 // 分批获取选择题答案（不自动提交）
@@ -2758,7 +2765,7 @@ async function batchProcessChoiceQuestions(floatWindow) {
           const answer = answers[idx] || '?';
           allAnswers[q.id] = answer;
           // 更新题目列表中的答案
-          const item = listEl?.querySelector(`.choice-item:nth-child(${questions.findIndex(qq => qq.id === q.id) + 1})`);
+          const item = getChoiceItemByQuestionId(listEl, q.id);
           if (item) {
             const answerSpan = item.querySelector('.choice-answer');
             if (answerSpan) {
@@ -2777,7 +2784,7 @@ async function batchProcessChoiceQuestions(floatWindow) {
       progressBar.style.width = pct + '%';
     } catch (e) {
       batch.forEach(q => {
-        const item = listEl?.querySelector(`.choice-item:nth-child(${questions.findIndex(qq => qq.id === q.id) + 1})`);
+        const item = getChoiceItemByQuestionId(listEl, q.id);
         if (item) {
           const answerSpan = item.querySelector('.choice-answer');
           if (answerSpan) {
